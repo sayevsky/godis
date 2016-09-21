@@ -23,7 +23,7 @@ func TestParseGet(t *testing.T) {
 }
 
 func TestParseSet(t *testing.T) {
-	in := "SET\r\n6\r\ngolang\r\n7\r\nawesome\r\n10"
+	in := "SET\r\n6\r\ngolang\r\n7\r\nawesome\r\n10\r\n"
 	reader := strings.NewReader(in)
 	want := &SetUpd{"golang", "awesome", 10, false}
 	got, err := ParseCommand(bufio.NewReader(reader))
@@ -41,7 +41,7 @@ func TestParseSet(t *testing.T) {
 }
 
 func TestParseUpdate(t *testing.T) {
-	in := "UPD\r\n6\r\ngolang\r\n7\r\nawesome\r\n10"
+	in := "UPD\r\n6\r\ngolang\r\n7\r\nawesome\r\n10\r\n"
 	reader := strings.NewReader(in)
 	want := &SetUpd{"golang", "awesome", 10, true}
 	got, err := ParseCommand(bufio.NewReader(reader))
