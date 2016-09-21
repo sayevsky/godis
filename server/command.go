@@ -19,6 +19,7 @@ type SetUpd struct {
 	TTL int
 	update bool
 }
+type Keys struct {}
 
 const  delim = '\n'
 
@@ -57,7 +58,7 @@ func ParseCommand(reader *bufio.Reader) (interface{}, error) {
 		}
 		command.update = true
 		return command, err
-	case"DEL":
+	case "DEL":
 		//<command>\r\n<numberOdBytesOfKey>\r\n<key><\r\n
 		size, err := readIntByDelim(reader)
 		if err != nil {
@@ -68,10 +69,15 @@ func ParseCommand(reader *bufio.Reader) (interface{}, error) {
 			return nil, err
 		}
 		return &Del{key}, nil
-
+	case "KEYS":
+		//<command>\r\n
+		// here we every time create Key struct,
+		// but this operation is quite rare
+		// and the real bottleneck is the size of keys
+	return &Keys{}, nil
 	}
 
-	return nil, fmt.Errorf("Can't parse incoming command")
+	return nil, fmt.Errorf("Unknown incoming command.")
 }
 
 func parseSetUpd(reader *bufio.Reader) (setupd *SetUpd, err error) {
