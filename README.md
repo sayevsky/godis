@@ -1,0 +1,1 @@
+Toy example of in-memory database. Just to show how golang is awesome.
