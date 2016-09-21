@@ -1,7 +1,6 @@
 language: go
 go: 
- - release
- - tip
+ - 1.7
 
 script:
  - go test -v ./...
