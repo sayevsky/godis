@@ -3,11 +3,11 @@ package server
 import "testing"
 import "strings"
 import "bufio"
-
 func TestParseGet(t *testing.T) {
 	in := "GET\r\n6\r\ngolang\r\n"
+
 	reader := strings.NewReader(in)
-	want := &Get{"golang"}
+	want := &Get{"golang", make(chan interface{})}
 	got, err := ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure")
@@ -15,7 +15,7 @@ func TestParseGet(t *testing.T) {
 
 	switch got := got.(type) {
 	case *Get:
-		if *got != *want {
+		if got.Key != want.Key {
 		t.Errorf("Commands to the same", in, got, want)
 	}
 	default: t.Errorf("Commands aren't the same!", in, got, want)
@@ -25,7 +25,7 @@ func TestParseGet(t *testing.T) {
 func TestParseSet(t *testing.T) {
 	in := "SET\r\n6\r\ngolang\r\n7\r\nawesome\r\n10\r\n"
 	reader := strings.NewReader(in)
-	want := &SetUpd{"golang", "awesome", 10, false}
+	want := &SetUpd{"golang", "awesome", 10, false, make(chan interface{})}
 	got, err := ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure")
@@ -33,7 +33,7 @@ func TestParseSet(t *testing.T) {
 
 	switch got := got.(type) {
 	case *SetUpd:
-		if *got != *want {
+		if got.Key != want.Key && got.Value == want.Value && got.TTL == want.TTL && got.update == want.update {
 			t.Errorf("Commands to the same", in, got, want)
 		}
 	default: t.Errorf("Commands aren't the same!", in, got, want)
@@ -43,7 +43,7 @@ func TestParseSet(t *testing.T) {
 func TestParseUpdate(t *testing.T) {
 	in := "UPD\r\n6\r\ngolang\r\n7\r\nawesome\r\n10\r\n"
 	reader := strings.NewReader(in)
-	want := &SetUpd{"golang", "awesome", 10, true}
+	want := &SetUpd{"golang", "awesome", 10, true, make(chan interface{})}
 	got, err := ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure")
@@ -51,7 +51,7 @@ func TestParseUpdate(t *testing.T) {
 
 	switch got := got.(type) {
 	case *SetUpd:
-		if *got != *want {
+		if got.Key != want.Key && got.Value == want.Value && got.TTL == want.TTL && got.update == want.update {
 			t.Errorf("Commands to the same", in, got, want)
 		}
 	default: t.Errorf("Commands aren't the same!", in, got, want)
@@ -61,7 +61,7 @@ func TestParseUpdate(t *testing.T) {
 func TestParseDelete(t *testing.T) {
 	in := "DEL\r\n6\r\ngolang\r\n"
 	reader := strings.NewReader(in)
-	want := &Del{"golang"}
+	want := &Del{"golang", make(chan interface{})}
 	got, err := ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure")
@@ -69,7 +69,7 @@ func TestParseDelete(t *testing.T) {
 
 	switch got := got.(type) {
 	case *Del:
-		if *got != *want {
+		if got.Key != want.Key {
 			t.Errorf("Commands to the same", in, got, want)
 		}
 	default: t.Errorf("Commands aren't the same!", in, got, want)
@@ -88,9 +88,7 @@ func TestParseKeys(t *testing.T) {
 
 	switch got := got.(type) {
 	case *Keys:
-		if *got != *want {
-			t.Errorf("Commands to the same", in, got, want)
-		}
+
 	default: t.Errorf("Commands aren't the same!", in, got, want)
 	}
 }

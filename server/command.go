@@ -9,17 +9,23 @@ import "strings"
 
 type Get struct {
 	Key string
+	result chan interface{}
 }
 type Del struct {
 	Key string
+	result chan interface{}
 }
+
 type SetUpd struct {
 	Key string
-	Value string
+	Value interface{}
 	TTL int
 	update bool
+	result chan interface{}
 }
-type Keys struct {}
+type Keys struct {
+	result chan interface{}
+}
 
 const  delim = '\n'
 
@@ -45,7 +51,7 @@ func ParseCommand(reader *bufio.Reader) (interface{}, error) {
 			return nil, err
 		}
 
- 		return &Get{key}, nil
+ 		return &Get{key, make(chan interface{})}, nil
 
 	case "SET":
 		command, err := parseSetUpd(reader)
@@ -68,13 +74,9 @@ func ParseCommand(reader *bufio.Reader) (interface{}, error) {
 		if(err != nil){
 			return nil, err
 		}
-		return &Del{key}, nil
+		return &Del{key, make(chan interface{})}, nil
 	case "KEYS":
-		//<command>\r\n
-		// here we every time create Key struct,
-		// but this operation is quite rare
-		// and the real bottleneck is the size of keys
-	return &Keys{}, nil
+		return &Keys{make(chan interface{})}, nil
 	}
 
 	return nil, fmt.Errorf("Unknown incoming command.")
@@ -106,7 +108,7 @@ func parseSetUpd(reader *bufio.Reader) (setupd *SetUpd, err error) {
 		return
 	}
 
-	return &SetUpd{key, value, ttl, false}, nil
+	return &SetUpd{key, value, ttl, false, make(chan interface{})}, nil
 }
 
 func readIntByDelim(reader *bufio.Reader) (size int, err error) {

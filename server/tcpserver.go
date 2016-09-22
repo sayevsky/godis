@@ -17,12 +17,17 @@ func Start() {
 
 	defer listener.Close()
 
+	// channel to communicate with kv-storage
+	dbChannel := make(chan interface{}, 10)
+
+	go ProcessCommands(dbChannel)
+
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Fatal("Error accepting ", err.Error())
 		} else {
-			go handle(conn)
+			go handle(conn, dbChannel)
 		}
 
 
@@ -30,7 +35,7 @@ func Start() {
 
 }
 
-func handle(conn net.Conn){
+func handle(conn net.Conn, dbChannel chan interface{}){
 	reader := bufio.NewReader(conn)
 	for {
 		// handle SIGINT
@@ -43,10 +48,14 @@ func handle(conn net.Conn){
 
 		command, _ := ParseCommand(reader)
 
-		log.Println(command)
+		dbChannel <- command
 
-		//command.process()
-
+		switch command := command.(type) {
+		case *SetUpd:
+			conn.Write([]byte((<- command.result).(string)))
+		case *Get:
+			conn.Write([]byte((<- command.result).(string)))
+		}
 
 	}
 }
