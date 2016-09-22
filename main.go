@@ -1,7 +1,7 @@
 package main
 
 import (
-	"godis/server"
+	"github.com/sayevsky/godis/server"
 )
 
 func main() {
