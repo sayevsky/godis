@@ -1,12 +1,16 @@
 package server
 
-type Value struct {
+type Result struct {
 	Value interface{}
 	TTL int
 }
 
+func (Result) Serialize() ([]byte){
+	return []byte("+OK")
+}
+
 func ProcessCommands(dbCannel chan interface{}) {
-	storage := make(map[string] *Value)
+	storage := make(map[string] *Result)
 
 	for {
 		command := <-dbCannel
@@ -16,16 +20,16 @@ func ProcessCommands(dbCannel chan interface{}) {
 			if command.update && storage[command.Key] == nil {
 				break
 			}
-			value := &Value{command.Value, command.TTL}
+			value := &Result{command.Value, command.TTL}
 			storage[command.Key] = value
-			command.result <- "+OK\r\n"
+			command.Base.ChannelWithResult <- Result{"", 0}
 		case *Get:
 			value := storage[command.Key]
 
 			if value == nil {
-				command.result <- "-NE\r\n"
+				command.Base.ChannelWithResult <- Result{"", 0}
 			} else {
-				command.result <- value.Value
+				command.Base.ChannelWithResult <- Result{"", 0}
 			}
 		}
 	}

@@ -7,13 +7,35 @@ import "log"
 import "fmt"
 import "strings"
 
+type Resulter interface {
+	Serialize() []byte
+}
+
+type Commander interface {
+	GetBaseCommand() BaseCommand
+}
+
+type BaseCommand struct {
+	IsAsync bool
+	ChannelWithResult chan Resulter
+}
+
 type Get struct {
 	Key string
-	result chan interface{}
+	Base BaseCommand
 }
+
+func (c *Get) GetBaseCommand() (BaseCommand){
+	return c.Base
+}
+
 type Del struct {
 	Key string
-	result chan interface{}
+	Base BaseCommand
+}
+
+func (c *Del) GetBaseCommand() (BaseCommand){
+	return c.Base
 }
 
 type SetUpd struct {
@@ -21,15 +43,24 @@ type SetUpd struct {
 	Value interface{}
 	TTL int
 	update bool
-	result chan interface{}
+	Base BaseCommand
 }
+
+func (c *SetUpd) GetBaseCommand() (BaseCommand){
+	return c.Base
+}
+
 type Keys struct {
-	result chan interface{}
+	Base BaseCommand
+}
+
+func (c *Keys) GetBaseCommand() (BaseCommand){
+	return c.Base
 }
 
 const  delim = '\n'
 
-func ParseCommand(reader *bufio.Reader) (interface{}, error) {
+func ParseCommand(reader *bufio.Reader) (Commander, error) {
 	// <command>\r\n<number of bytes>\r\n<key>...
 
 	com, err := reader.ReadString(delim)
@@ -40,7 +71,7 @@ func ParseCommand(reader *bufio.Reader) (interface{}, error) {
 	}
 	switch strings.ToUpper(com) {
 	case "GET":
-		// <command>\r\n<numberOfBytesOfValue>\r\n<value>\r\n
+		// <command>\r\n<numberOfBytesOfValue>\r\n<value>\r\n<acync = 1,0>\r\n
 		size, err := readIntByDelim(reader)
 		if(err != nil){
 			return nil, err
@@ -51,7 +82,7 @@ func ParseCommand(reader *bufio.Reader) (interface{}, error) {
 			return nil, err
 		}
 
- 		return &Get{key, make(chan interface{})}, nil
+ 		return &Get{key, BaseCommand{false,  make(chan Resulter)}}, nil
 
 	case "SET":
 		command, err := parseSetUpd(reader)
@@ -74,9 +105,9 @@ func ParseCommand(reader *bufio.Reader) (interface{}, error) {
 		if(err != nil){
 			return nil, err
 		}
-		return &Del{key, make(chan interface{})}, nil
+		return &Del{key, BaseCommand{false, make(chan Resulter)}}, nil
 	case "KEYS":
-		return &Keys{make(chan interface{})}, nil
+		return &Keys{BaseCommand{false, make(chan Resulter)}}, nil
 	}
 
 	return nil, fmt.Errorf("Unknown incoming command.")
@@ -108,7 +139,7 @@ func parseSetUpd(reader *bufio.Reader) (setupd *SetUpd, err error) {
 		return
 	}
 
-	return &SetUpd{key, value, ttl, false, make(chan interface{})}, nil
+	return &SetUpd{key, value, ttl, false, BaseCommand{false, make(chan Resulter)}}, nil
 }
 
 func readIntByDelim(reader *bufio.Reader) (size int, err error) {

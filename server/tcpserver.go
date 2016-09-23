@@ -50,12 +50,8 @@ func handle(conn net.Conn, dbChannel chan interface{}){
 
 		dbChannel <- command
 
-		switch command := command.(type) {
-		case *SetUpd:
-			conn.Write([]byte((<- command.result).(string)))
-		case *Get:
-			conn.Write([]byte((<- command.result).(string)))
-		}
+		conn.Write((<- command.GetBaseCommand().ChannelWithResult).Serialize())
+
 
 	}
 }
