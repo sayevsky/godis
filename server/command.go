@@ -74,7 +74,7 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 	}
 	switch strings.ToUpper(com) {
 	case "GET":
-		// <command>\r\n<numberOfBytesOfValue>\r\n<value>\r\n<acync = 1,0>\r\n
+		// <command>\r\n<numberOfBytesOfValue>\r\n<value>\r\n
 		size, err := readIntByDelim(reader)
 		if(err != nil){
 			return nil, err
@@ -99,7 +99,7 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 		command.update = true
 		return command, err
 	case "DEL":
-		//<command>\r\n<numberOdBytesOfKey>\r\n<key><\r\n
+		//<command>\r\n<numberOdBytesOfKey>\r\n<key><\r\n<async>\r\n
 		size, err := readIntByDelim(reader)
 		if err != nil {
 			return nil, err
@@ -108,7 +108,19 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 		if(err != nil){
 			return nil, err
 		}
-		return &Del{key, BaseCommand{false, make(chan Resulter)}}, nil
+
+		var async bool
+
+		size, err = readIntByDelim(reader)
+
+		if err != nil {
+			return nil, err
+		}
+		if size == 1 {
+			async = true
+		}
+
+		return &Del{key, BaseCommand{async, make(chan Resulter)}}, nil
 	case "KEYS":
 		return &Keys{BaseCommand{false, make(chan Resulter)}}, nil
 	}
@@ -117,7 +129,7 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 }
 
 func parseSetUpd(reader *bufio.Reader) (setupd *SetUpd, err error) {
-	// SET\r\n<numberOfBytes>\r\n<key>\r\n<numberOfBytes>\r\n<value>\r\n<TTL>\r\n
+	// SET\r\n<numberOfBytes>\r\n<key>\r\n<numberOfBytes>\r\n<value>\r\n<TTL>\r\n<async>\r\n
 	size, err := readIntByDelim(reader)
 	if(err != nil){
 		return
@@ -142,7 +154,18 @@ func parseSetUpd(reader *bufio.Reader) (setupd *SetUpd, err error) {
 		return
 	}
 
-	return &SetUpd{key, value, ttl, false, BaseCommand{false, make(chan Resulter)}}, nil
+	var async bool
+
+	size, err = readIntByDelim(reader)
+
+	if err != nil {
+		return nil, err
+	}
+	if size == 1 {
+		async = true
+	}
+
+	return &SetUpd{key, value, ttl, false, BaseCommand{async, make(chan Resulter)}}, nil
 }
 
 func readIntByDelim(reader *bufio.Reader) (size int, err error) {
@@ -162,7 +185,7 @@ func readByDelim(reader *bufio.Reader) (data string, err error) {
 		return
 	}
 	if len(data) == 2 {
-		return
+		return data, fmt.Errorf("Empty payload")
 	}
 	data = data[:len(data) - 2]
 
