@@ -1,5 +1,9 @@
 package server
 
+import (
+	"regexp"
+)
+
 type Result struct {
 	Value interface{}
 	TTL int
@@ -10,7 +14,7 @@ func (Result) Serialize() ([]byte){
 }
 
 func ProcessCommands(dbCannel chan interface{}) {
-	storage := make(map[string] *Result)
+	storage := make(map[string] Resulter)
 
 	for {
 		command := <-dbCannel
@@ -33,7 +37,21 @@ func ProcessCommands(dbCannel chan interface{}) {
 			command.Base.ChannelWithResult <- old
 
 		case *Keys:
-			//storage
+			keys := make([]string, 0)
+			pattern := command.Pattern
+			re, err := regexp.Compile(pattern)
+			if (err != nil) {
+				command.Base.ChannelWithResult <- Result{err, 0}
+				break
+			}
+			i := 0
+			for k := range storage {
+				matched := re.Match([]byte(k))
+				if matched {
+					keys[i] = k
+					i++
+				}
+			}
 		}
 	}
 }
