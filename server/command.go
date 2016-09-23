@@ -64,6 +64,9 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 	// <command>\r\n<number of bytes>\r\n<key>...
 
 	com, err := reader.ReadString(delim)
+	if len(com) < 2{
+		return nil, fmt.Errorf("wrong format")
+	}
 	com = com[:len(com)-2]
 	if err != nil {
 		log.Println("Error reading request, wrong format? " + com, err)

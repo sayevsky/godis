@@ -22,6 +22,17 @@ func TestParseGet(t *testing.T) {
 	}
 }
 
+func TestParseBadCommand(t *testing.T) {
+	in := "\n"
+
+	reader := strings.NewReader(in)
+	_, err := ParseCommand(bufio.NewReader(reader))
+	if err == nil {
+		t.Errorf("error detected as expected")
+	}
+
+}
+
 func TestParseSet(t *testing.T) {
 	in := "SET\r\n6\r\ngolang\r\n7\r\nawesome\r\n10\r\n"
 	reader := strings.NewReader(in)
