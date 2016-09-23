@@ -51,6 +51,7 @@ func (c *SetUpd) GetBaseCommand() (BaseCommand){
 }
 
 type Keys struct {
+	Pattern string
 	Base BaseCommand
 }
 
@@ -122,7 +123,16 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 
 		return &Del{key, BaseCommand{async, make(chan Resulter)}}, nil
 	case "KEYS":
-		return &Keys{BaseCommand{false, make(chan Resulter)}}, nil
+		//<command>\r\n<numberOdBytesOfPattern>\r\n<pattern><\r\n
+		size, err := readIntByDelim(reader)
+		if err != nil {
+			return nil, err
+		}
+		pattern, err := readDataGivenSize(reader, size)
+		if(err != nil){
+			return nil, err
+		}
+		return &Keys{pattern, BaseCommand{false, make(chan Resulter)}}, nil
 	}
 
 	return nil, fmt.Errorf("Unknown incoming command.")

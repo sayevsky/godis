@@ -16,21 +16,24 @@ func ProcessCommands(dbCannel chan interface{}) {
 		command := <-dbCannel
 		switch command := command.(type) {
 		case *SetUpd:
-			// sends +OK if value was updated successfully
+			// sends previous data in cache
 			if command.update && storage[command.Key] == nil {
+				command.Base.ChannelWithResult <- nil
 				break
 			}
 			value := &Result{command.Value, command.TTL}
+			old := storage[command.Key]
 			storage[command.Key] = value
-			command.Base.ChannelWithResult <- Result{"", 0}
+			command.Base.ChannelWithResult <- old
 		case *Get:
-			value := storage[command.Key]
+			command.Base.ChannelWithResult <- storage[command.Key]
+		case *Del:
+			old := storage[command.Key]
+			delete(storage, command.Key)
+			command.Base.ChannelWithResult <- old
 
-			if value == nil {
-				command.Base.ChannelWithResult <- Result{"", 0}
-			} else {
-				command.Base.ChannelWithResult <- Result{"", 0}
-			}
+		case *Keys:
+			//storage
 		}
 	}
 }

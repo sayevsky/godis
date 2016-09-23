@@ -92,9 +92,9 @@ func TestParseDelete(t *testing.T) {
 }
 
 func TestParseKeys(t *testing.T) {
-	in := "KEYS\r\n"
+	in := "KEYS\r\n2\r\n.*\r\n"
 	reader := strings.NewReader(in)
-	want := &Keys{BaseCommand{false, make(chan Resulter)}}
+	want := &Keys{".*",BaseCommand{false, make(chan Resulter)}}
 	got, err := ParseCommand(bufio.NewReader(reader))
 
 	if err != nil {
@@ -103,6 +103,9 @@ func TestParseKeys(t *testing.T) {
 
 	switch got := got.(type) {
 	case *Keys:
+		if got.Pattern != want.Pattern || got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync {
+			t.Errorf("Commands aren't the same!", in, got, want)
+		}
 
 	default: t.Errorf("Commands aren't the same!", in, got, want)
 	}
