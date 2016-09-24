@@ -7,7 +7,7 @@ func TestParseGet(t *testing.T) {
 	in := "GET\r\n6\r\ngolang\r\n"
 
 	reader := strings.NewReader(in)
-	want := &Get{"golang", BaseCommand{false,  make(chan Resulter)}}
+	want := &Get{"golang", BaseCommand{false,  make(chan WrappedValue)}}
 	got, err := ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure")
@@ -36,7 +36,7 @@ func TestParseBadCommand(t *testing.T) {
 func TestParseSet(t *testing.T) {
 	in := "SET\r\n6\r\ngolang\r\n7\r\nawesome\r\n10\r\n0\r\n"
 	reader := strings.NewReader(in)
-	want := &SetUpd{"golang", "awesome", 10, false, BaseCommand{false, make(chan Resulter)}}
+	want := &SetUpd{"golang", "awesome", 10, false, BaseCommand{false, make(chan WrappedValue)}}
 	got, err := ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure")
@@ -45,7 +45,7 @@ func TestParseSet(t *testing.T) {
 	switch got := got.(type) {
 	case *SetUpd:
 		if got.Key != want.Key || got.Value != want.Value ||
-			got.TTL != want.TTL || got.update != want.update ||
+			got.duration != want.duration || got.update != want.update ||
 			got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync {
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
@@ -56,7 +56,7 @@ func TestParseSet(t *testing.T) {
 func TestParseUpdate(t *testing.T) {
 	in := "UPD\r\n6\r\ngolang\r\n7\r\nawesome\r\n10\r\n1\r\n"
 	reader := strings.NewReader(in)
-	want := &SetUpd{"golang", "awesome", 10, true, BaseCommand{true, make(chan Resulter)}}
+	want := &SetUpd{"golang", "awesome", 10, true, BaseCommand{true, make(chan WrappedValue)}}
 	got, err := ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure")
@@ -65,7 +65,7 @@ func TestParseUpdate(t *testing.T) {
 	switch got := got.(type) {
 	case *SetUpd:
 		if got.Key != want.Key || got.Value != want.Value ||
-			got.TTL != want.TTL || got.update != want.update ||
+			got.duration != want.duration || got.update != want.update ||
 			got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync{
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
@@ -76,7 +76,7 @@ func TestParseUpdate(t *testing.T) {
 func TestParseDelete(t *testing.T) {
 	in := "DEL\r\n6\r\ngolang\r\n0\r\n"
 	reader := strings.NewReader(in)
-	want := &Del{"golang", BaseCommand{false, make(chan Resulter)}}
+	want := &Del{"golang", BaseCommand{false, make(chan WrappedValue)}}
 	got, err := ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure")
@@ -94,7 +94,7 @@ func TestParseDelete(t *testing.T) {
 func TestParseKeys(t *testing.T) {
 	in := "KEYS\r\n2\r\n.*\r\n"
 	reader := strings.NewReader(in)
-	want := &Keys{".*",BaseCommand{false, make(chan Resulter)}}
+	want := &Keys{".*",BaseCommand{false, make(chan WrappedValue)}}
 	got, err := ParseCommand(bufio.NewReader(reader))
 
 	if err != nil {

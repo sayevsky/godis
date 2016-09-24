@@ -5,11 +5,11 @@ import "bufio"
 import "io"
 import "log"
 import "fmt"
-import "strings"
+import (
+	"strings"
+	"time"
+)
 
-type Resulter interface {
-	Serialize() []byte
-}
 
 type Commander interface {
 	GetBaseCommand() BaseCommand
@@ -17,7 +17,7 @@ type Commander interface {
 
 type BaseCommand struct {
 	IsAsync bool
-	ChannelWithResult chan Resulter
+	ChannelWithResult chan WrappedValue
 }
 
 type Get struct {
@@ -41,7 +41,7 @@ func (c *Del) GetBaseCommand() (BaseCommand){
 type SetUpd struct {
 	Key string
 	Value interface{}
-	TTL int
+	duration time.Duration
 	update bool
 	Base BaseCommand
 }
@@ -54,6 +54,8 @@ type Keys struct {
 	Pattern string
 	Base BaseCommand
 }
+
+type Evict struct {}
 
 func (c *Keys) GetBaseCommand() (BaseCommand){
 	return c.Base
@@ -86,7 +88,7 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 			return nil, err
 		}
 
- 		return &Get{key, BaseCommand{false,  make(chan Resulter)}}, nil
+ 		return &Get{key, BaseCommand{false,  make(chan WrappedValue)}}, nil
 
 	case "SET":
 		command, err := parseSetUpd(reader)
@@ -121,7 +123,7 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 			async = true
 		}
 
-		return &Del{key, BaseCommand{async, make(chan Resulter)}}, nil
+		return &Del{key, BaseCommand{async, make(chan WrappedValue)}}, nil
 	case "KEYS":
 		//<command>\r\n<numberOdBytesOfPattern>\r\n<pattern><\r\n
 		size, err := readIntByDelim(reader)
@@ -132,14 +134,14 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 		if(err != nil){
 			return nil, err
 		}
-		return &Keys{pattern, BaseCommand{false, make(chan Resulter)}}, nil
+		return &Keys{pattern, BaseCommand{false, make(chan WrappedValue)}}, nil
 	}
 
 	return nil, fmt.Errorf("Unknown incoming command.")
 }
 
 func parseSetUpd(reader *bufio.Reader) (setupd *SetUpd, err error) {
-	// SET\r\n<numberOfBytes>\r\n<key>\r\n<numberOfBytes>\r\n<value>\r\n<TTL>\r\n<async>\r\n
+	// SET\r\n<numberOfBytes>\r\n<key>\r\n<numberOfBytes>\r\n<value>\r\n<TTL in duration format>\r\n<async>\r\n
 	size, err := readIntByDelim(reader)
 	if(err != nil){
 		return
@@ -159,7 +161,7 @@ func parseSetUpd(reader *bufio.Reader) (setupd *SetUpd, err error) {
 		return
 	}
 
-	ttl, err := readIntByDelim(reader)
+	ttl, err := readDurationByDelim(reader)
 	if(err != nil){
 		return
 	}
@@ -175,7 +177,7 @@ func parseSetUpd(reader *bufio.Reader) (setupd *SetUpd, err error) {
 		async = true
 	}
 
-	return &SetUpd{key, value, ttl, false, BaseCommand{async, make(chan Resulter)}}, nil
+	return &SetUpd{key, value, ttl, false, BaseCommand{async, make(chan WrappedValue)}}, nil
 }
 
 func readIntByDelim(reader *bufio.Reader) (size int, err error) {
@@ -183,6 +185,16 @@ func readIntByDelim(reader *bufio.Reader) (size int, err error) {
 	size, err = strconv.Atoi(string(bytesNumber))
 	if err != nil {
 		log.Println("Error to parse bytesNumber " + string(bytesNumber), err)
+		return
+	}
+	return
+}
+
+func readDurationByDelim(reader *bufio.Reader) (duration time.Duration, err error) {
+	str, err := readByDelim(reader)
+	duration, err = time.ParseDuration(str)
+	if err != nil {
+		log.Println("Error to parse duration " + str, err)
 		return
 	}
 	return
