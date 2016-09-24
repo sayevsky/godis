@@ -35,7 +35,7 @@ func expiredKey(key string, storage map[string] *WrappedValue) bool {
 		return false
 	}
 	value := storage[key]
-	if(time.Now().After(value.TTL)){
+	if(time.Now().After(value.TTL) && !value.TTL.IsZero()){
 		return true
 	} else{
 		return false
