@@ -3,7 +3,6 @@ package server
 import (
 	"regexp"
 	"time"
-	"log"
 )
 
 // TTL added as value to storage
