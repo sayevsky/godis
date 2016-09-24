@@ -20,7 +20,7 @@ func Start() {
 	// channel to communicate with kv-storage
 	dbChannel := make(chan interface{}, 10)
 
-	go ProcessCommands(dbChannel)
+	go ProcessCommands(dbChannel, true)
 
 	for {
 		conn, err := listener.Accept()

@@ -110,3 +110,23 @@ func TestParseKeys(t *testing.T) {
 	default: t.Errorf("Commands aren't the same!", in, got, want)
 	}
 }
+
+func TestParseCount(t *testing.T) {
+	in := "COUNT\r\n"
+	reader := strings.NewReader(in)
+	want := &Count{BaseCommand{false, make(chan WrappedValue)}}
+	got, err := ParseCommand(bufio.NewReader(reader))
+
+	if err != nil {
+		t.Errorf("parsed with failure")
+	}
+
+	switch got := got.(type) {
+	case *Count:
+		if got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync {
+			t.Errorf("Commands aren't the same!", in, got, want)
+		}
+
+	default: t.Errorf("Commands aren't the same!", in, got, want)
+	}
+}

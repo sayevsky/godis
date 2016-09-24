@@ -31,9 +31,32 @@ func durationToTTL(duration time.Duration) time.Time {
 	return ttl
 }
 
-func ProcessCommands(dbCannel chan interface{}) {
-	storage := make(map[string] *WrappedValue)
+func expiredKey(key string, storage map[string] *WrappedValue) bool {
+	if storage[key] == nil {
+		return false
+	}
+	value := storage[key]
+	if(time.Now().After(value.TTL)){
+		return true
+	} else{
+		return false
+	}
+}
 
+func sendEvictMessages(dbCannel chan interface{}) bool {
+	evict := &Evict{}
+	for {
+		time.Sleep(200 * time.Millisecond)
+		dbCannel <- evict
+	}
+}
+
+func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
+
+	if withActiveEviction {
+		go sendEvictMessages(dbCannel)
+	}
+	storage := make(map[string] *WrappedValue)
 	var zeroValue WrappedValue
 
 	for {
@@ -48,7 +71,7 @@ func ProcessCommands(dbCannel chan interface{}) {
 			ttl := durationToTTL(command.duration)
 			value := &WrappedValue{command.Value, ttl}
 			old := storage[command.Key]
-			if old == nil{
+			if old == nil {
 				old = &zeroValue
 			}
 			storage[command.Key] = value
@@ -56,8 +79,7 @@ func ProcessCommands(dbCannel chan interface{}) {
 		case *Get:
 			value := storage[command.Key]
 			//passive eviction
-			log.Print(value)
-			if(!value.TTL.IsZero() && time.Now().After(value.TTL)){
+			if (expiredKey(command.Key, storage)) {
 				delete(storage, command.Key)
 			}
 			value = storage[command.Key]
@@ -86,6 +108,30 @@ func ProcessCommands(dbCannel chan interface{}) {
 					i++
 				}
 			}
+		case *Evict:
+			// 20 (at most) randomly selected candidates to evict
+			amountToSelect := len(storage)
+			if amountToSelect > 20 {
+				amountToSelect = 20
+			}
+			// range of map do not return uniform distribution
+			// but probably it has enough 'ramdomness'
+			// for real-life problems this should be reimplemented
+			i := 0
+			for key := range storage {
+				if i > amountToSelect {
+					break
+				}
+				if expiredKey(key, storage) {
+					delete(storage, key)
+				}
+			}
+		case *Count:
+			size := len(storage)
+			value := WrappedValue{size, time.Time{}}
+			command.Base.ChannelWithResult <- value
+
+
 		}
 	}
 }

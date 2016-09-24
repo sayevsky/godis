@@ -5,10 +5,8 @@ import "bufio"
 import "io"
 import "log"
 import "fmt"
-import (
-	"strings"
-	"time"
-)
+import "time"
+
 
 
 type Commander interface {
@@ -55,7 +53,21 @@ type Keys struct {
 	Base BaseCommand
 }
 
+type Count struct {
+	Base BaseCommand
+}
+
+func (c *Count) GetBaseCommand() (BaseCommand){
+	return c.Base
+}
+
+// command will initiate active eviction
 type Evict struct {}
+
+func (c *Evict) GetBaseCommand() (BaseCommand){
+	return BaseCommand{}
+}
+
 
 func (c *Keys) GetBaseCommand() (BaseCommand){
 	return c.Base
@@ -75,7 +87,7 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 		log.Println("Error reading request, wrong format? " + com, err)
 		return nil, err
 	}
-	switch strings.ToUpper(com) {
+	switch com {
 	case "GET":
 		// <command>\r\n<numberOfBytesOfValue>\r\n<value>\r\n
 		size, err := readIntByDelim(reader)
@@ -135,6 +147,9 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 			return nil, err
 		}
 		return &Keys{pattern, BaseCommand{false, make(chan WrappedValue)}}, nil
+	case "COUNT":
+		//<command>\r\n
+	return &Count{BaseCommand{false, make(chan WrappedValue)}}, nil
 	}
 
 	return nil, fmt.Errorf("Unknown incoming command.")
