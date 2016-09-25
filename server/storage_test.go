@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TestPutThenGet(t *testing.T) {
+func TestPutStringThenGet(t *testing.T) {
 	dbChannel := make(chan interface{})
 	go ProcessCommands(dbChannel, true)
 
@@ -58,3 +58,4 @@ func TestPassiveEviction(t *testing.T) {
 		t.Errorf("can't get after set ")
 	}
 }
+
