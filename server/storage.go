@@ -173,7 +173,7 @@ func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
 				delete(storage, command.Key)
 				res = old.Value
 			} else {
-				err = "NE"
+				err = fmt.Errorf("NE")
 			}
 			command.Base.ChannelWithResult <- Response{res, err}
 
