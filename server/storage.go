@@ -3,7 +3,13 @@ package server
 import (
 	"regexp"
 	"time"
+	"fmt"
 )
+
+type Response struct {
+	Result interface{}
+	err error
+}
 
 // TTL added as value to storage
 type WrappedValue struct {
@@ -11,7 +17,7 @@ type WrappedValue struct {
 	TTL time.Time
 }
 
-func (WrappedValue) Serialize() ([]byte){
+func (Response) Serialize() ([]byte){
 	return []byte("+OK")
 }
 func (w WrappedValue) IsZero() (bool){
@@ -56,25 +62,24 @@ func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
 		go sendEvictMessages(dbCannel)
 	}
 	storage := make(map[string] *WrappedValue)
-	var zeroValue WrappedValue
 
 	for {
 		command := <-dbCannel
 		switch command := command.(type) {
 		case *SetUpd:
-			// sends previous data in cache
 			if command.update && storage[command.Key] == nil {
-				command.Base.ChannelWithResult <- zeroValue
+				command.Base.ChannelWithResult <- Response {nil, fmt.Errorf("Fail to update. Key doesn't exist.")}
 				break
 			}
 			ttl := durationToTTL(command.duration)
-			value := &WrappedValue{command.Value, ttl}
+			wrappedValue := &WrappedValue{command.Value, ttl}
 			old := storage[command.Key]
-			if old == nil {
-				old = &zeroValue
+			var res interface{}
+			if old != nil {
+				res = old.Value
 			}
-			storage[command.Key] = value
-			command.Base.ChannelWithResult <- *old
+			storage[command.Key] = wrappedValue
+			command.Base.ChannelWithResult <- Response{res, nil}
 		case *Get:
 			value := storage[command.Key]
 			//passive eviction
@@ -82,21 +87,26 @@ func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
 				delete(storage, command.Key)
 			}
 			value = storage[command.Key]
-			if value == nil {
-				value = &zeroValue
+			var res interface{}
+			if value != nil {
+				res = value.Value
 			}
-			command.Base.ChannelWithResult <- *value
+			command.Base.ChannelWithResult <- Response{res, nil}
 		case *Del:
 			old := storage[command.Key]
-			delete(storage, command.Key)
-			command.Base.ChannelWithResult <- *old
+			var res interface{}
+			if old != nil {
+				delete(storage, command.Key)
+				res = old.Value
+			}
+			command.Base.ChannelWithResult <- Response{res, nil}
 
 		case *Keys:
 			keys := make([]string, 0)
 			pattern := command.Pattern
 			re, err := regexp.Compile(pattern)
 			if (err != nil) {
-				command.Base.ChannelWithResult <- zeroValue
+				command.Base.ChannelWithResult <- Response{nil, err}
 				break
 			}
 			i := 0
@@ -107,8 +117,10 @@ func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
 					i++
 				}
 			}
+			command.Base.ChannelWithResult <- Response{keys, nil}
 		case *Evict:
 			// 20 (at most) randomly selected candidates to evict
+			// see also (go sendEvictMessages(dbCannel))
 			amountToSelect := len(storage)
 			if amountToSelect > 20 {
 				amountToSelect = 20
@@ -125,10 +137,10 @@ func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
 					delete(storage, key)
 				}
 			}
+			// here we can return number of evicted keys for statistics
 		case *Count:
 			size := len(storage)
-			value := WrappedValue{size, time.Time{}}
-			command.Base.ChannelWithResult <- value
+			command.Base.ChannelWithResult <- Response{size, nil}
 
 
 		}

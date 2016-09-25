@@ -15,7 +15,7 @@ type Commander interface {
 
 type BaseCommand struct {
 	IsAsync bool
-	ChannelWithResult chan WrappedValue
+	ChannelWithResult chan Response
 }
 
 type Get struct {
@@ -100,7 +100,7 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 			return nil, err
 		}
 
- 		return &Get{key, BaseCommand{false,  make(chan WrappedValue)}}, nil
+ 		return &Get{key, BaseCommand{false,  make(chan Response)}}, nil
 
 	case "SET":
 		command, err := parseSetUpd(reader)
@@ -135,7 +135,7 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 			async = true
 		}
 
-		return &Del{key, BaseCommand{async, make(chan WrappedValue)}}, nil
+		return &Del{key, BaseCommand{async, make(chan Response)}}, nil
 	case "KEYS":
 		//<command>\r\n<numberOdBytesOfPattern>\r\n<pattern><\r\n
 		size, err := readIntByDelim(reader)
@@ -146,10 +146,10 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 		if(err != nil){
 			return nil, err
 		}
-		return &Keys{pattern, BaseCommand{false, make(chan WrappedValue)}}, nil
+		return &Keys{pattern, BaseCommand{false, make(chan Response)}}, nil
 	case "COUNT":
 		//<command>\r\n
-	return &Count{BaseCommand{false, make(chan WrappedValue)}}, nil
+	return &Count{BaseCommand{false, make(chan Response)}}, nil
 	}
 
 	return nil, fmt.Errorf("Unknown incoming command.")
@@ -192,7 +192,7 @@ func parseSetUpd(reader *bufio.Reader) (setupd *SetUpd, err error) {
 		async = true
 	}
 
-	return &SetUpd{key, value, ttl, false, BaseCommand{async, make(chan WrappedValue)}}, nil
+	return &SetUpd{key, value, ttl, false, BaseCommand{async, make(chan Response)}}, nil
 }
 
 func readIntByDelim(reader *bufio.Reader) (size int, err error) {
