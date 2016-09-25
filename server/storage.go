@@ -157,18 +157,25 @@ func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
 			}
 			value = storage[command.Key]
 			var res interface{}
+			var err error
 			if value != nil {
 				res = value.Value
+			} else {
+				// not exist
+				err = fmt.Errorf("NE")
 			}
-			command.Base.ChannelWithResult <- Response{res, nil}
+			command.Base.ChannelWithResult <- Response{res, err}
 		case *Del:
 			old := storage[command.Key]
 			var res interface{}
+			var err error
 			if old != nil {
 				delete(storage, command.Key)
 				res = old.Value
+			} else {
+				err = "NE"
 			}
-			command.Base.ChannelWithResult <- Response{res, nil}
+			command.Base.ChannelWithResult <- Response{res, err}
 
 		case *Keys:
 			keys := make([]string, 0)
