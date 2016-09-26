@@ -2,10 +2,9 @@ package client
 
 import (
 	"bufio"
-	"bytes"
 	"net"
-	"strconv"
 	"github.com/sayevsky/godis/internal"
+	"fmt"
 )
 
 func NewClient(addr string) (Client, error) {
@@ -19,10 +18,22 @@ type Client struct {
 
 func (c Client) Get(key string) (interface{}, error) {
 	// <command>\r\n<numberOfBytesOfValue>\r\n<key>\r\n
-	datum, _ := internal.Get{key}.Serialize()
-	c.conn.Write(datum)
-	result := bufio.NewReader(c.conn)
-	readValue(result)
-	return string(resType), err
+	request, _ := internal.Get{key, nil}.Serialize()
+	c.conn.Write(request)
+	response := bufio.NewReader(c.conn)
+	status, err := response.ReadString(internal.Delim)
+	if err != nil {
+		return nil, err
+	}
+
+	result, readErr := internal.ReadValue(response)
+	if readErr != nil {
+		return result, readErr
+	}
+	if status == "-" {
+		return nil, fmt.Errorf(result.(string))
+	}
+
+	return response, err
 
 }

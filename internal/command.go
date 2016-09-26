@@ -32,11 +32,11 @@ func (c *Evict) GetBaseCommand() BaseCommand {
 	return BaseCommand{}
 }
 
-const delim = '\n'
+const Delim = '\n'
 
 func ParseCommand(reader *bufio.Reader) (Commander, error) {
 	// <command>\r\n<number of bytes>\r\n<key>...
-	com, err := reader.ReadString(delim)
+	com, err := reader.ReadString(Delim)
 	if len(com) < 2 {
 		return nil, fmt.Errorf("wrong format")
 	}
@@ -60,13 +60,13 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 		return DeserializeKeys(reader)
 	case "COUNT":
 		//<command>\r\n
-		return &Count{BaseCommand{false, make(chan Response)}}, nil
+		return &Count{ BaseCommand{false, make(chan Response)}}, nil
 	}
 
 	return nil, fmt.Errorf("Unknown incoming command.")
 }
 
-func readValue(reader *bufio.Reader, size int) (value interface{}, err error) {
+func ReadValue(reader *bufio.Reader) (value interface{}, err error) {
 	// value could be a string (starts with '@'), a list ( starts with '*')
 	// or dict (starts with '>')
 	typ, err := reader.ReadByte()
@@ -75,9 +75,9 @@ func readValue(reader *bufio.Reader, size int) (value interface{}, err error) {
 	}
 	switch typ {
 	case '@':
-		size, err = readIntByDelim(reader)
+		size, err := readIntByDelim(reader)
 		if err != nil {
-			return
+			return nil, err
 		}
 		return readDataGivenSize(reader, size)
 	case '*':
@@ -159,7 +159,7 @@ func readDurationByDelim(reader *bufio.Reader) (duration time.Duration, err erro
 }
 
 func readByDelim(reader *bufio.Reader) (data string, err error) {
-	data, err = reader.ReadString(delim)
+	data, err = reader.ReadString(Delim)
 	if err != nil {
 		log.Println("Error reading request, wrong format? ", err)
 		return

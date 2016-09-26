@@ -28,7 +28,7 @@ func DeserializeSetUpd(reader *bufio.Reader, update bool) (command *SetUpd, err 
 	if err != nil {
 		return
 	}
-	value, err := readValue(reader, size)
+	value, err := ReadValue(reader)
 	if err != nil {
 		return
 	}
