@@ -40,7 +40,7 @@ func TestParseBadCommand(t *testing.T) {
 }
 
 func TestParseSet(t *testing.T) {
-	in := "SET\r\n6\r\ngolang\r\n8\r\n@awesome\r\n10ns\r\n0\r\n"
+	in := "SET\r\n6\r\ngolang\r\n@7\r\nawesome\r\n10ns\r\n0\r\n"
 	reader := strings.NewReader(in)
 	want := &internal.SetUpd{"golang", "awesome", 10, false, internal.BaseCommand{false, make(chan internal.Response)}}
 	got, err := internal.ParseCommand(bufio.NewReader(reader))
@@ -62,7 +62,7 @@ func TestParseSet(t *testing.T) {
 }
 
 func TestParseSetArray(t *testing.T) {
-	in := "SET\r\n6\r\ngolang\r\n0\r\n*2\r\n7\r\nawesome\r\n3\r\nyep\r\n10ns\r\n0\r\n"
+	in := "SET\r\n6\r\ngolang\r\n*2\r\n7\r\nawesome\r\n3\r\nyep\r\n10ns\r\n0\r\n"
 	reader := strings.NewReader(in)
 	array := []string{"awesome", "yep"}
 	want := &internal.SetUpd{"golang", array, 10, false, internal.BaseCommand{false, make(chan internal.Response)}}
@@ -86,7 +86,7 @@ func TestParseSetArray(t *testing.T) {
 }
 
 func TestParseSetDict(t *testing.T) {
-	in := "SET\r\n6\r\ngolang\r\n0\r\n>2\r\n7\r\nawesome\r\n3\r\nyep\r\n3\r\nabc\r\n1\r\na\r\n10ns\r\n0\r\n"
+	in := "SET\r\n6\r\ngolang\r\n>2\r\n7\r\nawesome\r\n3\r\nyep\r\n3\r\nabc\r\n1\r\na\r\n10ns\r\n0\r\n"
 	reader := strings.NewReader(in)
 	dict := make(map[string]string)
 	dict["awesome"] = "yep"
@@ -113,7 +113,7 @@ func TestParseSetDict(t *testing.T) {
 }
 
 func TestParseUpdate(t *testing.T) {
-	in := "UPD\r\n6\r\ngolang\r\n8\r\n@awesome\r\n10ns\r\n1\r\n"
+	in := "UPD\r\n6\r\ngolang\r\n@7\r\nawesome\r\n10ns\r\n1\r\n"
 	reader := strings.NewReader(in)
 	want := &internal.SetUpd{"golang", "awesome", 10, true, internal.BaseCommand{true, make(chan internal.Response)}}
 	got, err := internal.ParseCommand(bufio.NewReader(reader))

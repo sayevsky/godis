@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"net"
 	"strconv"
+	"github.com/sayevsky/godis/internal"
 )
 
 func NewClient(addr string) (Client, error) {
@@ -18,13 +19,10 @@ type Client struct {
 
 func (c Client) Get(key string) (interface{}, error) {
 	// <command>\r\n<numberOfBytesOfValue>\r\n<key>\r\n
-	var buffer bytes.Buffer
-	buffer.WriteString("GET\r\n")
-	buffer.WriteString(strconv.Itoa(len(key)))
-	buffer.WriteString("\r\n" + key + "\r\n")
-	c.conn.Write(buffer.Bytes())
+	datum, _ := internal.Get{key}.Serialize()
+	c.conn.Write(datum)
 	result := bufio.NewReader(c.conn)
-	resType, err := result.ReadByte()
+	readValue(result)
 	return string(resType), err
 
 }

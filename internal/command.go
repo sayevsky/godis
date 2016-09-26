@@ -47,7 +47,7 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 	}
 	switch com {
 	case "GET":
-		DeserializeGet(reader)
+		return DeserializeGet(reader)
 
 	case "SET":
 		return DeserializeSetUpd(reader, false)
@@ -55,9 +55,9 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 		return DeserializeSetUpd(reader, true)
 
 	case "DEL":
-		DeserializeDelete(reader)
+		return DeserializeDelete(reader)
 	case "KEYS":
-		DeserializeKeys(reader)
+		return DeserializeKeys(reader)
 	case "COUNT":
 		//<command>\r\n
 		return &Count{BaseCommand{false, make(chan Response)}}, nil
@@ -74,8 +74,12 @@ func readValue(reader *bufio.Reader, size int) (value interface{}, err error) {
 		return nil, fmt.Errorf("Can't read type of value", err)
 	}
 	switch typ {
-	case byte('@'):
-		return readDataGivenSize(reader, size-1)
+	case '@':
+		size, err = readIntByDelim(reader)
+		if err != nil {
+			return
+		}
+		return readDataGivenSize(reader, size)
 	case '*':
 		// "*<size of array>\r\n<sizeOfBytesOfFirstElement>\r\n<First element>\r\n
 		// ...<sizeOfBytesOfLastElement>\r\n<LastElement>\r\n"

@@ -1,6 +1,10 @@
 package internal
 
-import "bufio"
+import (
+	"bufio"
+	"bytes"
+	"strconv"
+)
 
 type Get struct {
 	Key  string
@@ -24,4 +28,14 @@ func DeserializeGet(reader *bufio.Reader) (command *Get, err error) {
 	}
 
 	return &Get{key, BaseCommand{false, make(chan Response)}}, nil
+}
+
+func (c *Get ) Serialize() ([]byte, error) {
+	// <command>\r\n<numberOfBytesOfValue>\r\n<key>\r\n
+	var buffer bytes.Buffer
+	buffer.WriteString("GET\r\n")
+	buffer.WriteString(strconv.Itoa(len(c.Key)))
+	buffer.WriteString("\r\n" + c.Key + "\r\n")
+	return buffer.Bytes(), nil
+
 }

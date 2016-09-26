@@ -18,7 +18,7 @@ func (c *SetUpd) GetBaseCommand() BaseCommand {
 }
 
 func DeserializeSetUpd(reader *bufio.Reader, update bool) (command *SetUpd, err error) {
-	// SET\r\n<numberOfBytes>\r\n<key>\r\n<numberOfBytes>\r\n<value>\r\n<TTL in duration format>\r\n<async>\r\n
+	// SET\r\n<numberOfBytes>\r\n<key>\r\n<value>\r\n<TTL in duration format>\r\n<async>\r\n
 	size, err := readIntByDelim(reader)
 	if err != nil {
 		return
@@ -28,11 +28,6 @@ func DeserializeSetUpd(reader *bufio.Reader, update bool) (command *SetUpd, err 
 	if err != nil {
 		return
 	}
-	size, err = readIntByDelim(reader)
-	if err != nil {
-		return
-	}
-
 	value, err := readValue(reader, size)
 	if err != nil {
 		return

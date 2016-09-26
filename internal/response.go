@@ -3,6 +3,7 @@ package internal
 import (
 	"bytes"
 	"strconv"
+	"bufio"
 )
 
 type Response struct {
@@ -12,13 +13,13 @@ type Response struct {
 
 func (r Response) Serialize() []byte {
 	// start with
-	// error: -\r\n<numberOfBytes>\r\n<message>
+	// error: -\r\n@<numberOfBytes>\r\n<message>
 	// success with result: +\r\n<result>
 	// if result starts with @ it's a string +\r\n@<numberOfBytes>\r\n<mesage>
 	// if result starts with * it's an array
 	// 	+\r\n*<numberOfElements>\r\n<sizeOfFirstElement>\r\n<FirstElement>\r\n...<sizeOfLastElement>\r\n<LastElement>\r\n
 	// if result starts with > it's an dict
-	// +\r\n*<numberOfElements>\r\n<sizeOfFirstElement>\r\n<FirstElement>\r\n...<sizeOfLastElement>\r\n<LastElement>\r\n
+	// +\r\n><numberOfElements>\r\n<sizeOfFirstElement>\r\n<FirstElement>\r\n...<sizeOfLastElement>\r\n<LastElement>\r\n
 	// if result starts with $ it's int $\r\n<number>\r\n
 
 	var buffer bytes.Buffer
@@ -79,4 +80,9 @@ func (r Response) Serialize() []byte {
 	}
 
 	return buffer.Bytes()
+}
+
+func DeserializeResponse(reader *bufio.Reader) (response *Response, err error) {
+	// need to implement this piece
+	return &Response{nil, nil}, nil
 }
