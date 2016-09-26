@@ -2,7 +2,10 @@ package server
 
 import "net"
 import "log"
-import "bufio"
+import (
+	"bufio"
+	"github.com/sayevsky/godis/internal"
+)
 
 
 func Start() {
@@ -46,7 +49,7 @@ func handle(conn net.Conn, dbChannel chan interface{}){
 			return
 		}
 
-		command, _ := ParseCommand(reader)
+		command, _ := internal.ParseCommand(reader)
 
 		dbChannel <- command
 

@@ -3,16 +3,17 @@ package server
 import (
 	"testing"
 	"time"
+	"github.com/sayevsky/godis/internal"
 )
 
 func TestPutStringThenGet(t *testing.T) {
 	dbChannel := make(chan interface{})
 	go ProcessCommands(dbChannel, true)
 
-	setCommand := &SetUpd{"golang", "awesome", 0, false, BaseCommand{false, make(chan Response)}}
+	setCommand := &internal.SetUpd{"golang", "awesome", 0, false, internal.BaseCommand{false, make(chan internal.Response)}}
 	dbChannel <- setCommand
 	<- setCommand.GetBaseCommand().ChannelWithResult
-	getCommand := &Get{"golang", BaseCommand{false,  make(chan Response)}}
+	getCommand := &internal.Get{"golang", internal.BaseCommand{false,  make(chan internal.Response)}}
 	dbChannel <- getCommand
 	result := (<- getCommand.GetBaseCommand().ChannelWithResult)
 
@@ -25,10 +26,11 @@ func TestActiveEviction(t *testing.T) {
 	dbChannel := make(chan interface{})
 	go ProcessCommands(dbChannel, true)
 
-	setCommand := &SetUpd{"golang", "awesome", 1 * time.Nanosecond, false, BaseCommand{false, make(chan Response)}}
+	setCommand := &internal.SetUpd{"golang", "awesome", 1 * time.Nanosecond, false,
+		internal.BaseCommand{false, make(chan internal.Response)}}
 	dbChannel <- setCommand
 	<- setCommand.GetBaseCommand().ChannelWithResult
-	countCommand := &Count{BaseCommand{false,  make(chan Response)}}
+	countCommand := &internal.Count{internal.BaseCommand{false,  make(chan internal.Response)}}
 	dbChannel <- countCommand
 	result := (<- countCommand.GetBaseCommand().ChannelWithResult)
 	if s, _ := result.Result.(int); s == 0 {
@@ -46,11 +48,12 @@ func TestPassiveEviction(t *testing.T) {
 	dbChannel := make(chan interface{})
 	go ProcessCommands(dbChannel, false)
 
-	setCommand := &SetUpd{"golang", "awesome", 1 * time.Nanosecond, false, BaseCommand{false, make(chan Response)}}
+	setCommand := &internal.SetUpd{"golang", "awesome", 1 * time.Nanosecond, false,
+		internal.BaseCommand{false, make(chan internal.Response)}}
 	dbChannel <- setCommand
 	<- setCommand.GetBaseCommand().ChannelWithResult
 
-	getCommand := &Get{"golang", BaseCommand{false,  make(chan Response)}}
+	getCommand := &internal.Get{"golang", internal.BaseCommand{false,  make(chan internal.Response)}}
 	dbChannel <- getCommand
 	result := (<- getCommand.GetBaseCommand().ChannelWithResult)
 

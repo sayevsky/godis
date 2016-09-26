@@ -4,16 +4,8 @@ import (
 	"regexp"
 	"time"
 	"fmt"
-	"strconv"
-	"bytes"
+	"github.com/sayevsky/godis/internal"
 )
-
-type OK byte
-
-type Response struct {
-	Result interface{}
-	err error
-}
 
 // TTL added as value to storage
 type WrappedValue struct {
@@ -21,78 +13,7 @@ type WrappedValue struct {
 	TTL time.Time
 }
 
-func (r Response) Serialize() ([]byte){
-	// start with
-	// error: -\r\n<numberOfBytes>\r\n<message>
-	// success with result: +\r\n<result>
-	// if result starts with @ it's a string +\r\n@<numberOfBytes>\r\n<mesage>
-	// if result starts with * it's an array
-	// 	+\r\n*<numberOfElements>\r\n<sizeOfFirstElement>\r\n<FirstElement>\r\n...<sizeOfLastElement>\r\n<LastElement>\r\n
-	// if result starts with > it's an dict
-	// +\r\n*<numberOfElements>\r\n<sizeOfFirstElement>\r\n<FirstElement>\r\n...<sizeOfLastElement>\r\n<LastElement>\r\n
-	// if result starts with $ it's int $\r\n<number>\r\n
 
-	var buffer bytes.Buffer
-
-	if r.err != nil {
-		size := len(r.err.Error())
-		buffer.WriteString("-\r\n")
-		buffer.WriteString(strconv.Itoa(size))
-		buffer.WriteString("\r\n@")
-		buffer.WriteString(r.err.Error())
-		buffer.WriteString("\r\n")
-		return buffer.Bytes()
-	}
-
-	switch value := r.Result.(type) {
-	case string:
-		buffer.WriteString("+\r\n")
-		buffer.WriteString(strconv.Itoa(len(value)))
-		buffer.WriteString("\r\n@")
-		buffer.WriteString(value)
-		buffer.WriteString("\r\n")
-	case []string:
-		buffer.WriteString("+\r\n*")
-		buffer.WriteString(strconv.Itoa(len(value)))
-		buffer.WriteString("\r\n")
-		for _, element := range value {
-			buffer.WriteString(strconv.Itoa(len(element)))
-			buffer.WriteString("\r\n")
-			buffer.WriteString(element)
-			buffer.WriteString("\r\n")
-		}
-	case map[string]string:
-		buffer.WriteString("+\r\n>")
-		buffer.WriteString(strconv.Itoa(len(value)))
-		buffer.WriteString("\r\n")
-		for k,v := range value {
-			buffer.WriteString(strconv.Itoa(len(k)))
-			buffer.WriteString("\r\n")
-			buffer.WriteString(k)
-			buffer.WriteString("\r\n")
-			buffer.WriteString(strconv.Itoa(len(v)))
-			buffer.WriteString("\r\n")
-			buffer.WriteString(v)
-			buffer.WriteString("\r\n")
-		}
-	case int:
-		buffer.WriteString("+\r\n")
-		buffer.WriteString(strconv.Itoa(value))
-		buffer.WriteString("\r\n")
-	case OK:
-		buffer.WriteString("+\r\nOK\r\n")
-
-	default:
-		message := "Unxpected type"
-		buffer.WriteString("-\r\n")
-		buffer.WriteString(strconv.Itoa(len(message)))
-		buffer.WriteString("\r\n@")
-		buffer.WriteString(message)
-		buffer.WriteString("\r\n")
-	}
-
-	return buffer.Bytes()
-}
 func (w WrappedValue) IsZero() (bool){
 	return w.Value == nil && w.TTL.IsZero()
 }
@@ -122,7 +43,7 @@ func expiredKey(key string, storage map[string] *WrappedValue) bool {
 }
 
 func sendEvictMessages(dbCannel chan interface{}) bool {
-	evict := &Evict{}
+	evict := &internal.Evict{}
 	for {
 		time.Sleep(200 * time.Millisecond)
 		dbCannel <- evict
@@ -139,17 +60,17 @@ func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
 	for {
 		command := <-dbCannel
 		switch command := command.(type) {
-		case *SetUpd:
-			if command.update && storage[command.Key] == nil {
-				command.Base.ChannelWithResult <- Response {nil, fmt.Errorf("Fail to update. Key doesn't exist.")}
+		case *internal.SetUpd:
+			if command.Update && storage[command.Key] == nil {
+				command.Base.ChannelWithResult <- internal.Response {nil, fmt.Errorf("Fail to update. Key doesn't exist.")}
 				break
 			}
-			ttl := durationToTTL(command.duration)
+			ttl := durationToTTL(command.Duration)
 			wrappedValue := &WrappedValue{command.Value, ttl}
 			storage[command.Key] = wrappedValue
 
-			command.Base.ChannelWithResult <- Response{OK(0), nil}
-		case *Get:
+			command.Base.ChannelWithResult <- internal.Response{internal.OK(0), nil}
+		case *internal.Get:
 			value := storage[command.Key]
 			//passive eviction
 			if (expiredKey(command.Key, storage)) {
@@ -164,8 +85,8 @@ func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
 				// not exist
 				err = fmt.Errorf("NE")
 			}
-			command.Base.ChannelWithResult <- Response{res, err}
-		case *Del:
+			command.Base.ChannelWithResult <- internal.Response{res, err}
+		case *internal.Del:
 			old := storage[command.Key]
 			var res interface{}
 			var err error
@@ -175,14 +96,14 @@ func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
 			} else {
 				err = fmt.Errorf("NE")
 			}
-			command.Base.ChannelWithResult <- Response{res, err}
+			command.Base.ChannelWithResult <- internal.Response{res, err}
 
-		case *Keys:
+		case *internal.Keys:
 			keys := make([]string, 0)
 			pattern := command.Pattern
 			re, err := regexp.Compile(pattern)
 			if (err != nil) {
-				command.Base.ChannelWithResult <- Response{nil, err}
+				command.Base.ChannelWithResult <- internal.Response{nil, err}
 				break
 			}
 			i := 0
@@ -193,8 +114,8 @@ func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
 					i++
 				}
 			}
-			command.Base.ChannelWithResult <- Response{keys, nil}
-		case *Evict:
+			command.Base.ChannelWithResult <- internal.Response{keys, nil}
+		case *internal.Evict:
 			// 20 (at most) randomly selected candidates to evict
 			// see also (go sendEvictMessages(dbCannel))
 			amountToSelect := len(storage)
@@ -214,9 +135,9 @@ func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
 				}
 			}
 			// here we can return number of evicted keys for statistics
-		case *Count:
+		case *internal.Count:
 			size := len(storage)
-			command.Base.ChannelWithResult <- Response{size, nil}
+			command.Base.ChannelWithResult <- internal.Response{size, nil}
 
 
 		}

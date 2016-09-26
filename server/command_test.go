@@ -5,19 +5,20 @@ import (
 	"strings"
 	"bufio"
 	"reflect"
+	"github.com/sayevsky/godis/internal"
 )
 func TestParseGet(t *testing.T) {
 	in := "GET\r\n6\r\ngolang\r\n"
 
 	reader := strings.NewReader(in)
-	want := &Get{"golang", BaseCommand{false,  make(chan Response)}}
-	got, err := ParseCommand(bufio.NewReader(reader))
+	want := &internal.Get{"golang", internal.BaseCommand{false,  make(chan internal.Response)}}
+	got, err := internal.ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure")
 	}
 
 	switch got := got.(type) {
-	case *Get:
+	case *internal.Get:
 		if got.Key != want.Key || got.GetBaseCommand().IsAsync != got.GetBaseCommand().IsAsync {
 		t.Errorf("Commands to the same", in, got, want)
 	}
@@ -29,7 +30,7 @@ func TestParseBadCommand(t *testing.T) {
 	in := "\n"
 
 	reader := strings.NewReader(in)
-	_, err := ParseCommand(bufio.NewReader(reader))
+	_, err := internal.ParseCommand(bufio.NewReader(reader))
 	if err == nil {
 		t.Errorf("error detected as expected")
 	}
@@ -39,17 +40,17 @@ func TestParseBadCommand(t *testing.T) {
 func TestParseSet(t *testing.T) {
 	in := "SET\r\n6\r\ngolang\r\n8\r\n@awesome\r\n10ns\r\n0\r\n"
 	reader := strings.NewReader(in)
-	want := &SetUpd{"golang", "awesome", 10, false, BaseCommand{false, make(chan Response)}}
-	got, err := ParseCommand(bufio.NewReader(reader))
+	want := &internal.SetUpd{"golang", "awesome", 10, false, internal.BaseCommand{false, make(chan internal.Response)}}
+	got, err := internal.ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure", err)
 		t.FailNow()
 	}
 
 	switch got := got.(type) {
-	case *SetUpd:
+	case *internal.SetUpd:
 		if got.Key != want.Key || got.Value != want.Value ||
-			got.duration != want.duration || got.update != want.update ||
+			got.Duration != want.Duration || got.Update != want.Update ||
 			got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync {
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
@@ -61,18 +62,18 @@ func TestParseSetArray(t *testing.T) {
 	in := "SET\r\n6\r\ngolang\r\n0\r\n*2\r\n7\r\nawesome\r\n3\r\nyep\r\n10ns\r\n0\r\n"
 	reader := strings.NewReader(in)
 	array := []string{"awesome", "yep"}
-	want := &SetUpd{"golang", array, 10, false, BaseCommand{false, make(chan Response)}}
-	got, err := ParseCommand(bufio.NewReader(reader))
+	want := &internal.SetUpd{"golang", array, 10, false, internal.BaseCommand{false, make(chan internal.Response)}}
+	got, err := internal.ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure", err)
 		t.FailNow()
 	}
 
 	switch got := got.(type) {
-	case *SetUpd:
+	case *internal.SetUpd:
 
 		if got.Key != want.Key || !reflect.DeepEqual(got.Value, want.Value) ||
-			got.duration != want.duration || got.update != want.update ||
+			got.Duration != want.Duration || got.Update != want.Update ||
 			got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync {
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
@@ -86,19 +87,19 @@ func TestParseSetDict(t *testing.T) {
 	dict := make(map[string]string)
 	dict["awesome"] = "yep"
 	dict["abc"] = "a"
-	want := &SetUpd{"golang", dict, 10, false, BaseCommand{false, make(chan Response)}}
-	got, err := ParseCommand(bufio.NewReader(reader))
+	want := &internal.SetUpd{"golang", dict, 10, false, internal.BaseCommand{false, make(chan internal.Response)}}
+	got, err := internal.ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure", err)
 		t.FailNow()
 	}
 
 	switch got := got.(type) {
-	case *SetUpd:
+	case *internal.SetUpd:
 		equals := reflect.DeepEqual(got.Value, want.Value)
 
 		if got.Key != want.Key || !equals ||
-			got.duration != want.duration || got.update != want.update ||
+			got.Duration != want.Duration || got.Update != want.Update ||
 			got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync {
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
@@ -109,17 +110,17 @@ func TestParseSetDict(t *testing.T) {
 func TestParseUpdate(t *testing.T) {
 	in := "UPD\r\n6\r\ngolang\r\n8\r\n@awesome\r\n10ns\r\n1\r\n"
 	reader := strings.NewReader(in)
-	want := &SetUpd{"golang", "awesome", 10, true, BaseCommand{true, make(chan Response)}}
-	got, err := ParseCommand(bufio.NewReader(reader))
+	want := &internal.SetUpd{"golang", "awesome", 10, true, internal.BaseCommand{true, make(chan internal.Response)}}
+	got, err := internal.ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure", err)
 		t.FailNow()
 	}
 
 	switch got := got.(type) {
-	case *SetUpd:
+	case *internal.SetUpd:
 		if got.Key != want.Key || got.Value != want.Value ||
-			got.duration != want.duration || got.update != want.update ||
+			got.Duration != want.Duration || got.Update != want.Update ||
 			got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync{
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
@@ -132,14 +133,14 @@ func TestParseUpdate(t *testing.T) {
 func TestParseDelete(t *testing.T) {
 	in := "DEL\r\n6\r\ngolang\r\n0\r\n"
 	reader := strings.NewReader(in)
-	want := &Del{"golang", BaseCommand{false, make(chan Response)}}
-	got, err := ParseCommand(bufio.NewReader(reader))
+	want := &internal.Del{"golang", internal.BaseCommand{false, make(chan internal.Response)}}
+	got, err := internal.ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure")
 	}
 
 	switch got := got.(type) {
-	case *Del:
+	case *internal.Del:
 		if got.Key != want.Key || got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync {
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
@@ -150,15 +151,15 @@ func TestParseDelete(t *testing.T) {
 func TestParseKeys(t *testing.T) {
 	in := "KEYS\r\n2\r\n.*\r\n"
 	reader := strings.NewReader(in)
-	want := &Keys{".*",BaseCommand{false, make(chan Response)}}
-	got, err := ParseCommand(bufio.NewReader(reader))
+	want := &internal.Keys{".*", internal.BaseCommand{false, make(chan internal.Response)}}
+	got, err := internal.ParseCommand(bufio.NewReader(reader))
 
 	if err != nil {
 		t.Errorf("parsed with failure")
 	}
 
 	switch got := got.(type) {
-	case *Keys:
+	case *internal.Keys:
 		if got.Pattern != want.Pattern || got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync {
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
@@ -170,15 +171,15 @@ func TestParseKeys(t *testing.T) {
 func TestParseCount(t *testing.T) {
 	in := "COUNT\r\n"
 	reader := strings.NewReader(in)
-	want := &Count{BaseCommand{false, make(chan Response)}}
-	got, err := ParseCommand(bufio.NewReader(reader))
+	want := &internal.Count{internal.BaseCommand{false, make(chan internal.Response)}}
+	got, err := internal.ParseCommand(bufio.NewReader(reader))
 
 	if err != nil {
 		t.Errorf("parsed with failure")
 	}
 
 	switch got := got.(type) {
-	case *Count:
+	case *internal.Count:
 		if got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync {
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
