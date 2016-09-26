@@ -1,10 +1,10 @@
 package client
 
 import (
-	"net"
-	"bytes"
-	"strconv"
 	"bufio"
+	"bytes"
+	"net"
+	"strconv"
 )
 
 func NewClient(addr string) (Client, error) {

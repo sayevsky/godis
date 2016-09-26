@@ -7,15 +7,14 @@ import (
 	"github.com/sayevsky/godis/internal"
 )
 
-
 func Start() {
 
 	port := "6380"
 	log.Println("Launching godis on port " + port)
 
-	listener, err := net.Listen("tcp", ":" + port)
+	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		log.Fatal("Error starting server on " + port, err.Error())
+		log.Fatal("Error starting server on "+port, err.Error())
 	}
 
 	defer listener.Close()
@@ -33,17 +32,16 @@ func Start() {
 			go handle(conn, dbChannel)
 		}
 
-
 	}
 
 }
 
-func handle(conn net.Conn, dbChannel chan interface{}){
+func handle(conn net.Conn, dbChannel chan interface{}) {
 	reader := bufio.NewReader(conn)
 	for {
 		// handle SIGINT
 		signal, _ := reader.Peek(1)
-		if signal[0] == byte(255){
+		if signal[0] == byte(255) {
 			log.Println("Exit signal, close connection.")
 			conn.Close()
 			return
@@ -53,8 +51,7 @@ func handle(conn net.Conn, dbChannel chan interface{}){
 
 		dbChannel <- command
 
-		conn.Write((<- command.GetBaseCommand().ChannelWithResult).Serialize())
-
+		conn.Write((<-command.GetBaseCommand().ChannelWithResult).Serialize())
 
 	}
 }

@@ -1,23 +1,21 @@
 package server
 
 import (
-	"regexp"
-	"time"
 	"fmt"
 	"github.com/sayevsky/godis/internal"
+	"regexp"
+	"time"
 )
 
 // TTL added as value to storage
 type WrappedValue struct {
 	Value interface{}
-	TTL time.Time
+	TTL   time.Time
 }
 
-
-func (w WrappedValue) IsZero() (bool){
+func (w WrappedValue) IsZero() bool {
 	return w.Value == nil && w.TTL.IsZero()
 }
-
 
 // if duraion is 0 then return zero-time
 // otherwise duration + current time
@@ -30,14 +28,14 @@ func durationToTTL(duration time.Duration) time.Time {
 	return ttl
 }
 
-func expiredKey(key string, storage map[string] *WrappedValue) bool {
+func expiredKey(key string, storage map[string]*WrappedValue) bool {
 	if storage[key] == nil {
 		return false
 	}
 	value := storage[key]
-	if(time.Now().After(value.TTL) && !value.TTL.IsZero()){
+	if time.Now().After(value.TTL) && !value.TTL.IsZero() {
 		return true
-	} else{
+	} else {
 		return false
 	}
 }
@@ -55,25 +53,25 @@ func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
 	if withActiveEviction {
 		go sendEvictMessages(dbCannel)
 	}
-	storage := make(map[string] *WrappedValue)
+	storage := make(map[string]*WrappedValue)
 
 	for {
 		command := <-dbCannel
 		switch command := command.(type) {
 		case *internal.SetUpd:
 			if command.Update && storage[command.Key] == nil {
-				command.Base.ChannelWithResult <- internal.Response {nil, fmt.Errorf("Fail to update. Key doesn't exist.")}
+				command.Base.ChannelWithResult <- internal.Response{nil, fmt.Errorf("Fail to update. Key doesn't exist.")}
 				break
 			}
 			ttl := durationToTTL(command.Duration)
 			wrappedValue := &WrappedValue{command.Value, ttl}
 			storage[command.Key] = wrappedValue
 
-			command.Base.ChannelWithResult <- internal.Response{internal.OK(0), nil}
+			command.Base.ChannelWithResult <- internal.Response{"OK", nil}
 		case *internal.Get:
 			value := storage[command.Key]
 			//passive eviction
-			if (expiredKey(command.Key, storage)) {
+			if expiredKey(command.Key, storage) {
 				delete(storage, command.Key)
 			}
 			value = storage[command.Key]
@@ -102,7 +100,7 @@ func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
 			keys := make([]string, 0)
 			pattern := command.Pattern
 			re, err := regexp.Compile(pattern)
-			if (err != nil) {
+			if err != nil {
 				command.Base.ChannelWithResult <- internal.Response{nil, err}
 				break
 			}
@@ -138,7 +136,6 @@ func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
 		case *internal.Count:
 			size := len(storage)
 			command.Base.ChannelWithResult <- internal.Response{size, nil}
-
 
 		}
 	}

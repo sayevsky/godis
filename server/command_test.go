@@ -1,17 +1,18 @@
 package server
 
 import (
-	"testing"
-	"strings"
 	"bufio"
-	"reflect"
 	"github.com/sayevsky/godis/internal"
+	"reflect"
+	"strings"
+	"testing"
 )
+
 func TestParseGet(t *testing.T) {
 	in := "GET\r\n6\r\ngolang\r\n"
 
 	reader := strings.NewReader(in)
-	want := &internal.Get{"golang", internal.BaseCommand{false,  make(chan internal.Response)}}
+	want := &internal.Get{"golang", internal.BaseCommand{false, make(chan internal.Response)}}
 	got, err := internal.ParseCommand(bufio.NewReader(reader))
 	if err != nil {
 		t.Errorf("parsed with failure")
@@ -20,9 +21,10 @@ func TestParseGet(t *testing.T) {
 	switch got := got.(type) {
 	case *internal.Get:
 		if got.Key != want.Key || got.GetBaseCommand().IsAsync != got.GetBaseCommand().IsAsync {
-		t.Errorf("Commands to the same", in, got, want)
-	}
-	default: t.Errorf("Commands aren't the same!", in, got, want)
+			t.Errorf("Commands to the same", in, got, want)
+		}
+	default:
+		t.Errorf("Commands aren't the same!", in, got, want)
 	}
 }
 
@@ -54,7 +56,8 @@ func TestParseSet(t *testing.T) {
 			got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync {
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
-	default: t.Errorf("Commands aren't the same!", in, got, want)
+	default:
+		t.Errorf("Commands aren't the same!", in, got, want)
 	}
 }
 
@@ -77,7 +80,8 @@ func TestParseSetArray(t *testing.T) {
 			got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync {
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
-	default: t.Errorf("Commands aren't the same!", in, got, want)
+	default:
+		t.Errorf("Commands aren't the same!", in, got, want)
 	}
 }
 
@@ -103,7 +107,8 @@ func TestParseSetDict(t *testing.T) {
 			got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync {
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
-	default: t.Errorf("Commands aren't the same!", in, got, want)
+	default:
+		t.Errorf("Commands aren't the same!", in, got, want)
 	}
 }
 
@@ -121,14 +126,13 @@ func TestParseUpdate(t *testing.T) {
 	case *internal.SetUpd:
 		if got.Key != want.Key || got.Value != want.Value ||
 			got.Duration != want.Duration || got.Update != want.Update ||
-			got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync{
+			got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync {
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
-	default: t.Errorf("Commands aren't the same!", in, got, want)
+	default:
+		t.Errorf("Commands aren't the same!", in, got, want)
 	}
 }
-
-
 
 func TestParseDelete(t *testing.T) {
 	in := "DEL\r\n6\r\ngolang\r\n0\r\n"
@@ -144,7 +148,8 @@ func TestParseDelete(t *testing.T) {
 		if got.Key != want.Key || got.GetBaseCommand().IsAsync != want.GetBaseCommand().IsAsync {
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
-	default: t.Errorf("Commands aren't the same!", in, got, want)
+	default:
+		t.Errorf("Commands aren't the same!", in, got, want)
 	}
 }
 
@@ -164,7 +169,8 @@ func TestParseKeys(t *testing.T) {
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
 
-	default: t.Errorf("Commands aren't the same!", in, got, want)
+	default:
+		t.Errorf("Commands aren't the same!", in, got, want)
 	}
 }
 
@@ -184,6 +190,7 @@ func TestParseCount(t *testing.T) {
 			t.Errorf("Commands aren't the same!", in, got, want)
 		}
 
-	default: t.Errorf("Commands aren't the same!", in, got, want)
+	default:
+		t.Errorf("Commands aren't the same!", in, got, want)
 	}
 }
