@@ -40,7 +40,11 @@ func handle(conn net.Conn, dbChannel chan interface{}) {
 	reader := bufio.NewReader(conn)
 	for {
 		// handle SIGINT
-		signal, _ := reader.Peek(1)
+		signal, err := reader.Peek(1)
+		if err != nil {
+			log.Println("can't peek a byte", err)
+			break
+		}
 		if signal[0] == byte(255) {
 			log.Println("Exit signal, close connection.")
 			conn.Close()

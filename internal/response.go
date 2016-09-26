@@ -26,9 +26,9 @@ func (r Response) Serialize() []byte {
 
 	if r.Err != nil {
 		size := len(r.Err.Error())
-		buffer.WriteString("-\r\n")
+		buffer.WriteString("-\r\n@")
 		buffer.WriteString(strconv.Itoa(size))
-		buffer.WriteString("\r\n@")
+		buffer.WriteString("\r\n")
 		buffer.WriteString(r.Err.Error())
 		buffer.WriteString("\r\n")
 		return buffer.Bytes()

@@ -28,6 +28,26 @@ func TestParseGet(t *testing.T) {
 	}
 }
 
+func TestParseGetStruct(t *testing.T) {
+
+	want := &internal.Get{"a", internal.BaseCommand{false, nil}}
+	in, _ := want.Serialize()
+	reader := bufio.NewReader(strings.NewReader(string(in)))
+	got, err := internal.ParseCommand(reader)
+	if err != nil {
+		t.Errorf("parsed with failure")
+	}
+
+	switch got := got.(type) {
+	case *internal.Get:
+		if got.Key != want.Key || got.GetBaseCommand().IsAsync != got.GetBaseCommand().IsAsync {
+			t.Errorf("Commands to the same", in, got, want)
+		}
+	default:
+		t.Errorf("Commands aren't the same!", in, got, want)
+	}
+}
+
 func TestParseBadCommand(t *testing.T) {
 	in := "\n"
 
