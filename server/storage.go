@@ -48,15 +48,15 @@ func sendEvictMessages(dbCannel chan interface{}) bool {
 	}
 }
 
-func ProcessCommands(dbCannel chan interface{}, withActiveEviction bool) {
+func ProcessCommands(dbChannel chan interface{}, withActiveEviction bool) {
 
 	if withActiveEviction {
-		go sendEvictMessages(dbCannel)
+		go sendEvictMessages(dbChannel)
 	}
 	storage := make(map[string]*WrappedValue)
 
 	for {
-		command := <-dbCannel
+		command := <-dbChannel
 		switch command := command.(type) {
 		case *internal.SetUpd:
 			if command.Update && storage[command.Key] == nil {
