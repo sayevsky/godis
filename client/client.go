@@ -18,7 +18,7 @@ type Client struct {
 
 func (c Client) Get(key string) (interface{}, error) {
 	// <command>\r\n<numberOfBytesOfValue>\r\n<key>\r\n
-	request, _ := internal.Get{key, nil}.Serialize()
+	request, _ := internal.Get{key, internal.BaseCommand{false, nil}}.Serialize()
 	c.conn.Write(request)
 	response := bufio.NewReader(c.conn)
 	status, err := response.ReadString(internal.Delim)
