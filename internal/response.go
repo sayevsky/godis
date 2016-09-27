@@ -1,9 +1,9 @@
 package internal
 
 import (
+	"bufio"
 	"bytes"
 	"strconv"
-	"bufio"
 )
 
 type Response struct {

@@ -30,7 +30,7 @@ func DeserializeGet(reader *bufio.Reader) (command *Get, err error) {
 	return &Get{key, BaseCommand{false, make(chan Response)}}, nil
 }
 
-func (c Get ) Serialize() ([]byte, error) {
+func (c Get) Serialize() ([]byte, error) {
 	// <command>\r\n<numberOfBytesOfValue>\r\n<key>\r\n
 	var buffer bytes.Buffer
 	buffer.WriteString("GET\r\n")

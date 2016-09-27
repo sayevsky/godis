@@ -2,9 +2,9 @@ package client
 
 import (
 	"bufio"
-	"net"
-	"github.com/sayevsky/godis/internal"
 	"fmt"
+	"github.com/sayevsky/godis/internal"
+	"net"
 )
 
 func NewClient(addr string) (Client, error) {
@@ -21,7 +21,7 @@ func (c Client) Get(key string) (interface{}, error) {
 	request, _ := internal.Get{key, internal.BaseCommand{false, nil}}.Serialize()
 	c.conn.Write(request)
 	response := bufio.NewReader(c.conn)
-	status, err := response.ReadString(internal.Delim)
+	status, err := internal.ReadByDelim(response)
 	if err != nil {
 		return nil, err
 	}
@@ -34,6 +34,6 @@ func (c Client) Get(key string) (interface{}, error) {
 		return nil, fmt.Errorf(result.(string))
 	}
 
-	return response, err
+	return result, err
 
 }

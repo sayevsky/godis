@@ -8,7 +8,7 @@ import (
 
 func TestPutStringThenGet(t *testing.T) {
 	dbChannel := make(chan interface{})
-	go ProcessCommands(dbChannel, true)
+	go ProcessCommands(dbChannel)
 
 	setCommand := &internal.SetUpd{"golang", "awesome", 0, false, internal.BaseCommand{false, make(chan internal.Response)}}
 	dbChannel <- setCommand
@@ -24,7 +24,8 @@ func TestPutStringThenGet(t *testing.T) {
 
 func TestActiveEviction(t *testing.T) {
 	dbChannel := make(chan interface{})
-	go ProcessCommands(dbChannel, true)
+	go sendEvictMessages(dbChannel, make(chan bool))
+	go ProcessCommands(dbChannel)
 
 	setCommand := &internal.SetUpd{"golang", "awesome", 1 * time.Nanosecond, false,
 		internal.BaseCommand{false, make(chan internal.Response)}}
@@ -45,8 +46,9 @@ func TestActiveEviction(t *testing.T) {
 }
 
 func TestPassiveEviction(t *testing.T) {
+
 	dbChannel := make(chan interface{})
-	go ProcessCommands(dbChannel, false)
+	go ProcessCommands(dbChannel)
 
 	setCommand := &internal.SetUpd{"golang", "awesome", 1 * time.Nanosecond, false,
 		internal.BaseCommand{false, make(chan internal.Response)}}

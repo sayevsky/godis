@@ -5,10 +5,17 @@ import "log"
 import (
 	"bufio"
 	"github.com/sayevsky/godis/internal"
+	"time"
 )
 
-func Start() {
+type Server struct {
+	Listener     net.Listener
+	dbChannel    chan interface{}
+	WithEviction bool
+	poisonPill   chan bool
+}
 
+func NewServer() Server {
 	port := "6380"
 	log.Println("Launching godis on port " + port)
 
@@ -17,23 +24,50 @@ func Start() {
 		log.Fatal("Error starting server on "+port, err.Error())
 	}
 
-	defer listener.Close()
-
 	// channel to communicate with kv-storage
-	dbChannel := make(chan interface{}, 10)
+	dbChannel := make(chan interface{})
 
-	go ProcessCommands(dbChannel, true)
+	return Server{listener, dbChannel, true, make(chan bool)}
 
+}
+
+// connections
+func (s Server) serveConnections() {
 	for {
-		conn, err := listener.Accept()
+		conn, err := s.Listener.Accept()
 		if err != nil {
 			log.Fatal("Error accepting ", err.Error())
+			break
 		} else {
-			go handle(conn, dbChannel)
+			go handle(conn, s.dbChannel)
 		}
-
 	}
+}
 
+func (s Server) Start(background bool) {
+	// works with storage directly
+	go ProcessCommands(s.dbChannel)
+
+	if s.WithEviction {
+		// periodically send evict message to processCommands
+		go sendEvictMessages(s.dbChannel, s.poisonPill)
+	}
+	if background {
+		go s.serveConnections()
+		// ensure we start to serve connection (could be done better)
+		time.Sleep(10 * time.Millisecond)
+	} else {
+		s.serveConnections()
+	}
+}
+
+func (s Server) Stop() {
+	// will stop connections loop
+	s.Listener.Close()
+	// exit eviction routine
+	s.poisonPill <- true
+	// exit ProcessCommands
+	s.dbChannel <- &internal.Quit{}
 }
 
 func handle(conn net.Conn, dbChannel chan interface{}) {
@@ -51,11 +85,21 @@ func handle(conn net.Conn, dbChannel chan interface{}) {
 			return
 		}
 
-		command, _ := internal.ParseCommand(reader)
+		command, err := internal.ParseCommand(reader)
 
-		dbChannel <- command
+		var response internal.Response
 
-		conn.Write((<-command.GetBaseCommand().ChannelWithResult).Serialize())
+		if err != nil {
+			// if fail to parse command, send it as result
+			response = internal.Response{nil, err}
+		} else {
+
+			dbChannel <- command
+
+			response = <-command.GetBaseCommand().ChannelWithResult
+		}
+
+		conn.Write(response.Serialize())
 
 	}
 }

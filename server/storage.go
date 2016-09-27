@@ -40,19 +40,22 @@ func expiredKey(key string, storage map[string]*WrappedValue) bool {
 	}
 }
 
-func sendEvictMessages(dbCannel chan interface{}) bool {
+func sendEvictMessages(dbCannel chan interface{}, poisonPill chan bool) {
 	evict := &internal.Evict{}
 	for {
-		time.Sleep(200 * time.Millisecond)
-		dbCannel <- evict
+		select {
+		case <-poisonPill:
+			return
+		default:
+			time.Sleep(200 * time.Millisecond)
+			dbCannel <- evict
+		}
+
 	}
 }
 
-func ProcessCommands(dbChannel chan interface{}, withActiveEviction bool) {
+func ProcessCommands(dbChannel chan interface{}) {
 
-	if withActiveEviction {
-		go sendEvictMessages(dbChannel)
-	}
 	storage := make(map[string]*WrappedValue)
 
 	for {
@@ -136,7 +139,8 @@ func ProcessCommands(dbChannel chan interface{}, withActiveEviction bool) {
 		case *internal.Count:
 			size := len(storage)
 			command.Base.ChannelWithResult <- internal.Response{size, nil}
-
+		case *internal.Quit:
+			return
 		}
 	}
 }

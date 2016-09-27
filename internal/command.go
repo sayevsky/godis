@@ -32,6 +32,12 @@ func (c *Evict) GetBaseCommand() BaseCommand {
 	return BaseCommand{}
 }
 
+type Quit struct{}
+
+func (c *Quit) GetBaseCommand() BaseCommand {
+	return BaseCommand{}
+}
+
 const Delim = '\n'
 
 func ParseCommand(reader *bufio.Reader) (Commander, error) {
@@ -60,7 +66,7 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 		return DeserializeKeys(reader)
 	case "COUNT":
 		//<command>\r\n
-		return &Count{ BaseCommand{false, make(chan Response)}}, nil
+		return &Count{BaseCommand{false, make(chan Response)}}, nil
 	}
 
 	return nil, fmt.Errorf("Unknown incoming command.")
@@ -139,7 +145,7 @@ func ReadValue(reader *bufio.Reader) (value interface{}, err error) {
 }
 
 func readIntByDelim(reader *bufio.Reader) (size int, err error) {
-	bytesNumber, err := readByDelim(reader)
+	bytesNumber, err := ReadByDelim(reader)
 	size, err = strconv.Atoi(string(bytesNumber))
 	if err != nil {
 		log.Println("Error to parse bytesNumber "+string(bytesNumber), err)
@@ -149,7 +155,7 @@ func readIntByDelim(reader *bufio.Reader) (size int, err error) {
 }
 
 func readDurationByDelim(reader *bufio.Reader) (duration time.Duration, err error) {
-	str, err := readByDelim(reader)
+	str, err := ReadByDelim(reader)
 	duration, err = time.ParseDuration(str)
 	if err != nil {
 		log.Println("Error to parse duration "+str, err)
@@ -158,7 +164,7 @@ func readDurationByDelim(reader *bufio.Reader) (duration time.Duration, err erro
 	return
 }
 
-func readByDelim(reader *bufio.Reader) (data string, err error) {
+func ReadByDelim(reader *bufio.Reader) (data string, err error) {
 	data, err = reader.ReadString(Delim)
 	if err != nil {
 		log.Println("Error reading request, wrong format? ", err)
