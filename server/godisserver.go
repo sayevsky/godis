@@ -5,7 +5,6 @@ import "log"
 import (
 	"bufio"
 	"github.com/sayevsky/godis/internal"
-	"time"
 )
 
 type Server struct {
@@ -36,7 +35,7 @@ func (s Server) serveConnections() {
 	for {
 		conn, err := s.Listener.Accept()
 		if err != nil {
-			log.Fatal("Error accepting ", err.Error())
+			log.Println(err.Error())
 			break
 		} else {
 			go handle(conn, s.dbChannel)
@@ -54,8 +53,6 @@ func (s Server) Start(background bool) {
 	}
 	if background {
 		go s.serveConnections()
-		// ensure we start to serve connection (could be done better)
-		time.Sleep(10 * time.Millisecond)
 	} else {
 		s.serveConnections()
 	}
@@ -92,14 +89,17 @@ func handle(conn net.Conn, dbChannel chan interface{}) {
 		if err != nil {
 			// if fail to parse command, send it as result
 			response = internal.Response{nil, err}
+			conn.Write(response.Serialize())
 		} else {
 
 			dbChannel <- command
 
-			response = <-command.GetBaseCommand().ChannelWithResult
+			// send reply only for sync commands
+			if ! command.GetBaseCommand().IsAsync {
+				response = <-command.GetBaseCommand().ChannelWithResult
+				conn.Write(response.Serialize())
+			}
 		}
-
-		conn.Write(response.Serialize())
 
 	}
 }

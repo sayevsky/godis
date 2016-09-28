@@ -2,18 +2,34 @@ package client
 
 import (
 	"github.com/sayevsky/godis/server"
-	"log"
 	"testing"
 )
 
-func TestGet(t *testing.T) {
-	server.NewServer().Start(true)
+func TestGetEmpty(t *testing.T) {
+	s := server.NewServer()
+	s.Start(true)
 	client, _ := NewClient("localhost:6380")
 
-	res, err := client.Get("a")
-	if err.Error() != "NE" {
-		t.Errorf("fail to get a key", res, err)
+	res := client.Get("a")
+	if res.Err.Error() != "NE" {
+		t.Errorf("fail to get a key", res)
 	}
-	log.Println(res)
-
+	s.Stop()
 }
+
+func TestSetGet(t *testing.T) {
+	s := server.NewServer()
+	s.Start(true)
+	client, _ := NewClient("localhost:6380")
+
+	res := client.Set("a", "b")
+
+	res = client.Get("a")
+
+	if res.Result != "b"{
+		t.Errorf("fail to get a key that was set", res)
+	}
+
+	s.Stop()
+}
+

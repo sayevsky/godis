@@ -3,7 +3,7 @@ package internal
 import (
 	"bufio"
 	"bytes"
-	"strconv"
+	"fmt"
 )
 
 type Response struct {
@@ -11,78 +11,62 @@ type Response struct {
 	Err    error
 }
 
+
+func DeserializeResponse(reader *bufio.Reader) (*Response) {
+	// start with
+	// error: -\r\n@<numberOfBytes>\r\n<message>
+	// success with result: +\r\n<result>
+	// result serialized as 'value'
+	var response Response
+	status, err := ReadByDelim(reader)
+	if err != nil {
+		response.Err = err
+		return &response
+	}
+	value, err := ReadValue(reader)
+	if status == "-" {
+		response.Err = fmt.Errorf(value.(string))
+	} else {
+		response.Result = value
+	}
+
+	return &response
+
+}
+
 func (r Response) Serialize() []byte {
 	// start with
 	// error: -\r\n@<numberOfBytes>\r\n<message>
 	// success with result: +\r\n<result>
-	// if result starts with @ it's a string +\r\n@<numberOfBytes>\r\n<mesage>
-	// if result starts with * it's an array
-	// 	+\r\n*<numberOfElements>\r\n<sizeOfFirstElement>\r\n<FirstElement>\r\n...<sizeOfLastElement>\r\n<LastElement>\r\n
-	// if result starts with > it's an dict
-	// +\r\n><numberOfElements>\r\n<sizeOfFirstElement>\r\n<FirstElement>\r\n...<sizeOfLastElement>\r\n<LastElement>\r\n
-	// if result starts with $ it's int $\r\n<number>\r\n
+	// result serialized as 'value'
 
-	var buffer bytes.Buffer
+	var b bytes.Buffer
+	buffer := &b
 
 	if r.Err != nil {
-		size := len(r.Err.Error())
-		buffer.WriteString("-\r\n@")
-		buffer.WriteString(strconv.Itoa(size))
-		buffer.WriteString("\r\n")
-		buffer.WriteString(r.Err.Error())
-		buffer.WriteString("\r\n")
+		failStatus(buffer)
+		buf, _ := SerializeValue(r.Err)
+		buf.WriteTo(buffer)
 		return buffer.Bytes()
 	}
+	buf, err := SerializeValue(r.Result)
 
-	switch value := r.Result.(type) {
-	case string:
-		buffer.WriteString("+\r\n")
-		buffer.WriteString(strconv.Itoa(len(value)))
-		buffer.WriteString("\r\n@")
-		buffer.WriteString(value)
-		buffer.WriteString("\r\n")
-	case []string:
-		buffer.WriteString("+\r\n*")
-		buffer.WriteString(strconv.Itoa(len(value)))
-		buffer.WriteString("\r\n")
-		for _, element := range value {
-			buffer.WriteString(strconv.Itoa(len(element)))
-			buffer.WriteString("\r\n")
-			buffer.WriteString(element)
-			buffer.WriteString("\r\n")
-		}
-	case map[string]string:
-		buffer.WriteString("+\r\n>")
-		buffer.WriteString(strconv.Itoa(len(value)))
-		buffer.WriteString("\r\n")
-		for k, v := range value {
-			buffer.WriteString(strconv.Itoa(len(k)))
-			buffer.WriteString("\r\n")
-			buffer.WriteString(k)
-			buffer.WriteString("\r\n")
-			buffer.WriteString(strconv.Itoa(len(v)))
-			buffer.WriteString("\r\n")
-			buffer.WriteString(v)
-			buffer.WriteString("\r\n")
-		}
-	case int:
-		buffer.WriteString("+\r\n")
-		buffer.WriteString(strconv.Itoa(value))
-		buffer.WriteString("\r\n")
+	if err != nil {
+		failStatus(buffer)
+		buf, _ = SerializeValue(err)
+		buf.WriteTo(buffer)
+		return buffer.Bytes()
 
-	default:
-		message := "Unxpected type"
-		buffer.WriteString("-\r\n")
-		buffer.WriteString(strconv.Itoa(len(message)))
-		buffer.WriteString("\r\n@")
-		buffer.WriteString(message)
-		buffer.WriteString("\r\n")
 	}
-
+	okStatus(buffer)
+	buf.WriteTo(buffer)
 	return buffer.Bytes()
 }
 
-func DeserializeResponse(reader *bufio.Reader) (response *Response, err error) {
-	// need to implement this piece
-	return &Response{nil, nil}, nil
+func okStatus(buffer *bytes.Buffer) {
+	buffer.WriteString("+\r\n")
+}
+
+func failStatus(buffer *bytes.Buffer) {
+	buffer.WriteString("-\r\n")
 }

@@ -37,5 +37,4 @@ func (c Get) Serialize() ([]byte, error) {
 	buffer.WriteString(strconv.Itoa(len(c.Key)))
 	buffer.WriteString("\r\n" + c.Key + "\r\n")
 	return buffer.Bytes(), nil
-
 }

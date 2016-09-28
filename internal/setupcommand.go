@@ -3,6 +3,8 @@ package internal
 import (
 	"bufio"
 	"time"
+	"bytes"
+	"strconv"
 )
 
 type SetUpd struct {
@@ -40,14 +42,37 @@ func DeserializeSetUpd(reader *bufio.Reader, update bool) (command *SetUpd, err 
 
 	var async bool
 
-	size, err = readIntByDelim(reader)
+	isasync, err := readIntByDelim(reader)
 
 	if err != nil {
 		return nil, err
 	}
-	if size == 1 {
+	if isasync == 1 {
 		async = true
 	}
 
 	return &SetUpd{key, value, ttl, update, BaseCommand{async, make(chan Response)}}, nil
+}
+
+func (c SetUpd) Serialize() ([]byte, error) {
+	// <SET/UPD>\r\n<numberOfBytes>\r\n<key>\r\n<value>\r\n<TTL in duration format>\r\n<async>\r\n
+	var buffer bytes.Buffer
+	if c.Update {
+		buffer.WriteString("UPD\r\n")
+	} else {
+		buffer.WriteString("SET\r\n")
+	}
+	buffer.WriteString(strconv.Itoa(len(c.Key)))
+	buffer.WriteString("\r\n" + c.Key + "\r\n")
+	buf, err := SerializeValue(c.Value)
+	if err != nil {
+		return nil, err
+	}
+	buf.WriteTo(&buffer)
+	buffer.WriteString(c.Duration.String())
+	buffer.WriteString("\r\n")
+	buffer.WriteString(strconv.Itoa(Btoi(c.GetBaseCommand().IsAsync)))
+	buffer.WriteString("\r\n")
+
+	return buffer.Bytes(), nil
 }

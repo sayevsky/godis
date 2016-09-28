@@ -1,6 +1,10 @@
 package internal
 
-import "bufio"
+import (
+	"bufio"
+	"bytes"
+	"strconv"
+)
 
 type Keys struct {
 	Pattern string
@@ -22,4 +26,13 @@ func DeserializeKeys(reader *bufio.Reader) (command *Keys, err error) {
 		return nil, err
 	}
 	return &Keys{pattern, BaseCommand{false, make(chan Response)}}, nil
+}
+
+func (c Keys) Serialize() ([]byte, error) {
+	//<command>\r\n<numberOdBytesOfPattern>\r\n<pattern><\r\n
+	var buffer bytes.Buffer
+	buffer.WriteString("KEYS\r\n")
+	buffer.WriteString(strconv.Itoa(len(c.Pattern)))
+	buffer.WriteString("\r\n" + c.Pattern + "\r\n")
+	return buffer.Bytes(), nil
 }
