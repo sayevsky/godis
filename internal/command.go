@@ -17,14 +17,6 @@ type BaseCommand struct {
 	ChannelWithResult chan Response
 }
 
-type Count struct {
-	Base BaseCommand
-}
-
-func (c *Count) GetBaseCommand() BaseCommand {
-	return c.Base
-}
-
 // command will initiate active eviction
 type Evict struct{}
 
@@ -65,8 +57,7 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 	case "KEYS":
 		return DeserializeKeys(reader)
 	case "COUNT":
-		//<command>\r\n
-		return &Count{BaseCommand{false, make(chan Response)}}, nil
+		return DeserializeCount(reader)
 	}
 
 	return nil, fmt.Errorf("Unknown incoming command.")

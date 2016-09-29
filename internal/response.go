@@ -24,6 +24,10 @@ func DeserializeResponse(reader *bufio.Reader) (*Response) {
 		return &response
 	}
 	value, err := ReadValue(reader)
+	if err != nil {
+		response.Err = err
+		return &response
+	}
 	if status == "-" {
 		response.Err = fmt.Errorf(value.(string))
 	} else {

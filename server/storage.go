@@ -100,18 +100,19 @@ func ProcessCommands(dbChannel chan interface{}) {
 			command.Base.ChannelWithResult <- internal.Response{res, err}
 
 		case *internal.Keys:
-			keys := make([]string, 0)
+
 			pattern := command.Pattern
 			re, err := regexp.Compile(pattern)
 			if err != nil {
 				command.Base.ChannelWithResult <- internal.Response{nil, err}
 				break
 			}
+			keys := make([]string, 0)
 			i := 0
 			for k := range storage {
 				matched := re.Match([]byte(k))
 				if matched {
-					keys[i] = k
+					keys = append(keys, k)
 					i++
 				}
 			}

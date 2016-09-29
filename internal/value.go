@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"bytes"
 	"bufio"
+	"log"
 )
 
 func ReadValue(reader *bufio.Reader) (value interface{}, err error) {
@@ -73,7 +74,11 @@ func ReadValue(reader *bufio.Reader) (value interface{}, err error) {
 			dict[ithKey] = ithValue
 		}
 		return dict, nil
+	case '$':
+		// "$<int>\r\n
+		return readIntByDelim(reader)
 	default:
+		log.Println("uknown type ")
 		return nil, fmt.Errorf("Unknown value type " + string(typ))
 
 	}
@@ -108,6 +113,7 @@ func SerializeValue(value interface{}, ) (buffer *bytes.Buffer, err error) {
 			buffer.WriteString("\r\n")
 		}
 	case map[string]string:
+		buffer.WriteString(">")
 		buffer.WriteString(strconv.Itoa(len(value)))
 		buffer.WriteString("\r\n")
 		for k, v := range value {
@@ -121,6 +127,7 @@ func SerializeValue(value interface{}, ) (buffer *bytes.Buffer, err error) {
 			buffer.WriteString("\r\n")
 		}
 	case int:
+		buffer.WriteString("$")
 		buffer.WriteString(strconv.Itoa(value))
 		buffer.WriteString("\r\n")
 	case error:
