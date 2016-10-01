@@ -11,8 +11,7 @@ type Response struct {
 	Err    error
 }
 
-
-func DeserializeResponse(reader *bufio.Reader) (*Response) {
+func DeserializeResponse(reader *bufio.Reader) *Response {
 	// start with
 	// error: -\r\n@<numberOfBytes>\r\n<message>
 	// success with result: +\r\n<result>

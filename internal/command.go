@@ -9,7 +9,6 @@ import "time"
 
 type Commander interface {
 	GetBaseCommand() BaseCommand
-	//Serialize() []byte
 }
 
 type BaseCommand struct {
@@ -58,6 +57,10 @@ func ParseCommand(reader *bufio.Reader) (Commander, error) {
 		return DeserializeKeys(reader)
 	case "COUNT":
 		return DeserializeCount(reader)
+	case "GGETI":
+		return DeserializeGGetI(reader)
+	case "GGETK":
+		return DeserializeGGetK(reader)
 	}
 
 	return nil, fmt.Errorf("Unknown incoming command.")
@@ -67,7 +70,7 @@ func readIntByDelim(reader *bufio.Reader) (size int, err error) {
 	bytesNumber, err := ReadByDelim(reader)
 	size, err = strconv.Atoi(string(bytesNumber))
 	if err != nil {
-		log.Println("Error to parse bytesNumber " + string(bytesNumber), err)
+		log.Println("Error to parse bytesNumber "+string(bytesNumber), err)
 		return
 	}
 	return

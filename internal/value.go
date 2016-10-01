@@ -1,11 +1,11 @@
 package internal
 
 import (
-	"strconv"
-	"fmt"
-	"bytes"
 	"bufio"
+	"bytes"
+	"fmt"
 	"log"
+	"strconv"
 )
 
 func ReadValue(reader *bufio.Reader) (value interface{}, err error) {
@@ -91,7 +91,7 @@ func ReadValue(reader *bufio.Reader) (value interface{}, err error) {
 // +\r\n><numberOfElements>\r\n<sizeOfFirstElement>\r\n<FirstElement>\r\n...<sizeOfLastElement>\r\n<LastElement>\r\n
 // if value starts with $ it's int $\r\n<number>\r\n
 
-func SerializeValue(value interface{}, ) (buffer *bytes.Buffer, err error) {
+func SerializeValue(value interface{}) (buffer *bytes.Buffer, err error) {
 	var b bytes.Buffer
 	buffer = &b
 	//TODO: error handling if buffer are too large

@@ -16,7 +16,7 @@ func (c *Get) GetBaseCommand() BaseCommand {
 }
 
 func DeserializeGet(reader *bufio.Reader) (command *Get, err error) {
-	// <command>\r\n<numberOfBytesOfValue>\r\n<key>\r\n
+	// <command>\r\n<numberOfBytesOfKey>\r\n<key>\r\n
 	size, err := readIntByDelim(reader)
 	if err != nil {
 		return
@@ -31,7 +31,7 @@ func DeserializeGet(reader *bufio.Reader) (command *Get, err error) {
 }
 
 func (c Get) Serialize() ([]byte, error) {
-	// <command>\r\n<numberOfBytesOfValue>\r\n<key>\r\n
+	// <command>\r\n<numberOfBytesOfKey>\r\n<key>\r\n
 	var buffer bytes.Buffer
 	buffer.WriteString("GET\r\n")
 	buffer.WriteString(strconv.Itoa(len(c.Key)))

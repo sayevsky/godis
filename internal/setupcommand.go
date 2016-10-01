@@ -2,9 +2,9 @@ package internal
 
 import (
 	"bufio"
-	"time"
 	"bytes"
 	"strconv"
+	"time"
 )
 
 type SetUpd struct {

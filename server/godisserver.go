@@ -95,7 +95,7 @@ func handle(conn net.Conn, dbChannel chan interface{}) {
 			dbChannel <- command
 
 			// send reply only for sync commands
-			if ! command.GetBaseCommand().IsAsync {
+			if !command.GetBaseCommand().IsAsync {
 				response = <-command.GetBaseCommand().ChannelWithResult
 				conn.Write(response.Serialize())
 			}

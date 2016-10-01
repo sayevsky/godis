@@ -54,6 +54,24 @@ func sendEvictMessages(dbCannel chan interface{}, poisonPill chan bool) {
 	}
 }
 
+func get(key string, storage map[string]*WrappedValue) (interface{}, error) {
+	value := storage[key]
+	//passive eviction
+	if expiredKey(key, storage) {
+		delete(storage, key)
+	}
+	value = storage[key]
+	var res interface{}
+	var err error
+	if value != nil {
+		res = value.Value
+	} else {
+		// not exist
+		err = fmt.Errorf("NE")
+	}
+	return res, err
+}
+
 func ProcessCommands(dbChannel chan interface{}) {
 
 	storage := make(map[string]*WrappedValue)
@@ -63,7 +81,7 @@ func ProcessCommands(dbChannel chan interface{}) {
 		switch command := command.(type) {
 		case *internal.SetUpd:
 			if command.Update && storage[command.Key] == nil {
-				command.Base.ChannelWithResult <- internal.Response{nil, fmt.Errorf("Fail to update. Key doesn't exist.")}
+				command.Base.ChannelWithResult <- internal.Response{nil, fmt.Errorf("NE")}
 				break
 			}
 			ttl := durationToTTL(command.Duration)
@@ -72,20 +90,7 @@ func ProcessCommands(dbChannel chan interface{}) {
 
 			command.Base.ChannelWithResult <- internal.Response{"OK", nil}
 		case *internal.Get:
-			value := storage[command.Key]
-			//passive eviction
-			if expiredKey(command.Key, storage) {
-				delete(storage, command.Key)
-			}
-			value = storage[command.Key]
-			var res interface{}
-			var err error
-			if value != nil {
-				res = value.Value
-			} else {
-				// not exist
-				err = fmt.Errorf("NE")
-			}
+			res, err := get(command.Key, storage)
 			command.Base.ChannelWithResult <- internal.Response{res, err}
 		case *internal.Del:
 			old := storage[command.Key]
@@ -140,6 +145,45 @@ func ProcessCommands(dbChannel chan interface{}) {
 		case *internal.Count:
 			size := len(storage)
 			command.Base.ChannelWithResult <- internal.Response{size, nil}
+		case *internal.GGetI:
+			value, err := get(command.Key, storage)
+			if err != nil {
+				command.Base.ChannelWithResult <- internal.Response{value, err}
+				break
+			}
+			array, ok := value.([]string)
+			if !ok {
+				// wrong type
+				command.Base.ChannelWithResult <- internal.Response{value, fmt.Errorf("WT")}
+				break
+			}
+			if len(array) <= command.Index {
+				// out of range
+				command.Base.ChannelWithResult <- internal.Response{array, fmt.Errorf("OOR")}
+				break
+			}
+			command.Base.ChannelWithResult <- internal.Response{array[command.Index], nil}
+		case *internal.GGetK:
+			value, err := get(command.Key, storage)
+			if err != nil {
+				command.Base.ChannelWithResult <- internal.Response{value, err}
+				break
+			}
+			tomap, ok := value.(map[string]string)
+			if !ok {
+				// wrong type
+				command.Base.ChannelWithResult <- internal.Response{value, fmt.Errorf("WT")}
+				break
+			}
+			res, ok := tomap[command.KeyInValue]
+			if !ok {
+				// wrong type
+				command.Base.ChannelWithResult <- internal.Response{value, fmt.Errorf("NE")}
+				break
+			}
+
+			command.Base.ChannelWithResult <- internal.Response{res, nil}
+
 		case *internal.Quit:
 			return
 		}
