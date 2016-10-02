@@ -2,8 +2,11 @@ package main
 
 import (
 	"github.com/sayevsky/godis/server"
+	"flag"
 )
 
 func main() {
-	server.NewServer().Start(false)
+	port := flag.String("port", "6380", "port to listen")
+	flag.Parse()
+	server.NewServerWithPort(*port).Start(false)
 }
