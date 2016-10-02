@@ -16,4 +16,4 @@ Then to run
 
 By default godis use `6380` port, but it possible to override by `-port=<your port>`. Type `./godis -h` to get list of parameters.
 
-When godis is started it can store and retrieve some data. We can use golang client or `telnet` as example. For more information and examples of telnet commands to godis visit [wiki](https://github.com/sayevsky/godis/wiki)
+When godis is started it can store and retrieve some data. We can use golang client or `telnet` as example. For more information and examples of telnet commands visit [wiki](https://github.com/sayevsky/godis/wiki)
