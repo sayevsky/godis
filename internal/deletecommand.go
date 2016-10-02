@@ -37,7 +37,7 @@ func DeserializeDelete(reader *bufio.Reader) (command *Del, err error) {
 }
 
 func (c Del) Serialize() ([]byte, error) {
-	// <command>\r\n<numberOfBytesOfValue>\r\n<key>\r\n<async>\r\n
+	// <command>\r\n<numberOfBytesOfKey>\r\n<key>\r\n<async>\r\n
 	var buffer bytes.Buffer
 	buffer.WriteString("DEL\r\n")
 	buffer.WriteString(strconv.Itoa(len(c.Key)))
