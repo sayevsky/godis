@@ -195,16 +195,18 @@ func TestSetUpdateGGetInMap(t *testing.T) {
 }
 
 func BenchmarkBasic(b *testing.B) {
-	s := server.NewServer()
-	s.Start(true)
 	log.Println("start bench")
-	client, _ := NewClient("localhost:6380")
 
 	for n := 0; n < b.N; n++ {
-		setValues(&client, 1000000)
+		log.Println("start bench" , n)
+		s:= server.NewServer()
+		s.Start(true)
+		client, _ := NewClient("localhost:6380")
+		setValues(&client, 100000)
+		s.Stop()
+		log.Println("stop bench" , n)
 	}
 	log.Println("stop bench")
-	s.Stop()
 }
 
 func setValues(client *Client, size int) {
